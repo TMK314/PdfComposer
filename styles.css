@@ -1,0 +1,1856 @@
+.pdfcompose-view-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.pdfcompose-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0;
+}
+
+.pdfcompose-toolbar-title {
+    font-weight: 600;
+}
+
+.pdfcompose-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.pdfcompose-page-label {
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+.pdfcompose-page-wrapper {
+    position: relative;
+
+    flex: 0 0 auto;
+
+    /* Kein max-width mehr: die Seite darf über die Pane-Breite hinaus
+       wachsen (Zoom); der Pages-Container scrollt dann horizontal.
+       Wichtig auch für korrekte Positionsberechnung der Overlays/
+       Verbindungslinien, die sich relativ zu dieser Box ausrichten. */
+    width: fit-content;
+
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pdfcompose-page-skeleton {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-faint);
+    font-size: 0.85em;
+}
+
+.pdfcompose-canvas-wrapper {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--background-modifier-border);
+    background: white;
+    position: relative;
+}
+
+.pdfcompose-page-canvas {
+    display: block;
+    transition: filter 0.15s ease;
+}
+
+.pdfcompose-blank-page {
+    background: white;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.pdfcompose-add-page-modal {
+    display: flex;
+    flex-direction: column;
+    max-height: min(80vh, 720px);
+    overflow: hidden;
+    gap: 8px;
+}
+
+.pdfcompose-modal-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pdfcompose-modal-row label {
+    min-width: 70px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.pdfcompose-modal-select {
+    flex: 1;
+    min-width: 0;
+}
+
+.pdfcompose-add-page-count {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.pdfcompose-add-page-thumbnails {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    flex: 1 1 auto;
+    min-height: 120px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+}
+
+.pdfcompose-add-page-thumbnail {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 5px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.pdfcompose-add-page-thumbnail:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-add-page-thumb-label {
+    font-size: 0.8em;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.pdfcompose-add-page-checkbox {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 2;
+}
+
+.pdfcompose-thumb-selected {
+    border-color: var(--interactive-accent) !important;
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+    padding-top: 6px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.pdfcompose-error {
+    color: var(--text-error);
+    padding: 12px;
+    max-width: 500px;
+    text-align: center;
+}
+
+.pdfcompose-empty-state {
+    color: var(--text-muted);
+    padding: 24px;
+    text-align: center;
+}
+
+.pdfcompose-error {
+    color: var(--text-error);
+    max-width: 500px;
+}
+
+.pdfcompose-flex {
+    display: flex;
+    height: 1;
+    min-height: 0;
+}
+
+.pdfcompose-sidebar-item {
+    cursor: grab;
+    margin-bottom: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    /* Runde Ränder */
+    padding: 6px;
+    background: var(--background-primary);
+    transition: all 0.2s;
+}
+
+.pdfcompose-sidebar-item:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.pdfcompose-sidebar-highlight {
+    background: var(--text-accent) !important;
+    border-color: var(--text-accent);
+    color: var(--text-on-accent);
+}
+
+.pdfcompose-sidebar-label {
+    text-align: center;
+    font-size: 0.8em;
+    margin-top: 2px;
+}
+
+.pdfcompose-thumbnail {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60px;
+}
+
+.pdfcompose-thumb-canvas {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.pdfcompose-pages-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 80px 24px 24px 24px;
+    background: var(--background-primary);
+    display: flex;
+    justify-content: safe center;
+    align-items: flex-start;
+}
+
+/* Trägt den Zoom-Faktor (CSS "zoom"). Bleibt der äußere Scroll-Container
+   unverändert, wird nur der Inhalt skaliert – inkl. Canvas, SVG-Ebenen,
+   Textblöcken und PDF-Anmerkungsboxen. */
+.pdfcompose-pages-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    width: max-content;
+}
+
+/* Horizontales Layout */
+.pdfcompose-pages-container.pdfcompose-horizontal .pdfcompose-pages-content {
+    flex-direction: row;
+    align-items: flex-start;
+    height: max-content;
+    width: auto;
+    gap: 6px;
+}
+
+.pdfcompose-pages-container.pdfcompose-horizontal {
+    /* Weniger Innenabstand, damit horizontal mehr Seiten sichtbar sind.
+       Oben etwas mehr als sonst, damit die schwebende Werkzeugleiste
+       (top: 16px + ~40px Höhe) weiterhin nichts verdeckt. */
+    padding: 56px 12px 12px 12px;
+}
+
+.pdfcompose-pages-container.pdfcompose-horizontal .pdfcompose-page {
+    flex-shrink: 0;
+}
+
+.pdfcompose-pages-container.pdfcompose-horizontal .pdfcompose-page-label {
+    font-size: 0.7em;
+    line-height: 1;
+}
+
+.pdfcompose-annotation-column:empty,
+.pdfcompose-annotation-column-placeholder:not(:has(*)) {
+    display: none;
+}
+
+.pdfcompose-source-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-left: 16px;
+    gap: 4px;
+}
+
+.pdfcompose-source-chip {
+    background: var(--background-secondary);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.8em;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.pdfcompose-sidebar-delete {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.8em;
+    padding: 0 4px;
+}
+
+.pdfcompose-sidebar-delete:hover {
+    color: var(--text-error);
+}
+
+.pdfcompose-sidebar-header {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 8px;
+}
+
+.pdfcompose-sidebar-btn {
+    width: 100%;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    /* Runde Ränder */
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.pdfcompose-sidebar-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-source-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-left: 4px;
+    padding: 0 2px;
+}
+
+.pdfcompose-source-delete:hover {
+    color: var(--text-error);
+}
+
+.pdfcompose-sidebar-source {
+    font-size: 0.7em;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Highlights bei PDF Suche */
+.pdfcompose-highlight {
+    position: absolute;
+    background: rgba(255, 255, 0, 0.35);
+    pointer-events: none;
+}
+
+.pdfcompose-highlight-active {
+    outline: 2px solid orange;
+    background: rgba(255, 165, 0, 0.35);
+}
+
+
+
+.pdfcompose-text-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    color: transparent;
+    user-select: text;
+}
+
+.pdfcompose-text-layer span {
+    position: absolute;
+    color: transparent;
+    cursor: text;
+}
+
+.pdfcompose-text-layer span::selection {
+    background: rgba(0, 100, 255, 0.3);
+    color: transparent;
+}
+
+/* Vektorannotationen */
+.pdfcompose-annotation-toolbar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pdfcompose-annotation-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    backdrop-filter: blur(8px);
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    /* Breite relativ zum Overlay-Bereich (Platz rechts der Seitenleiste) */
+    max-width: min(45%, 420px);
+    flex: 0 1 auto;
+}
+
+.pdfcompose-tool-btn {
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 1em;
+    line-height: 1;
+}
+
+.pdfcompose-tool-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-tool-btn-active {
+    background: var(--text-accent);
+    border-color: var(--text-accent);
+    color: var(--text-on-accent);
+}
+
+.pdfcompose-annotation-layer {
+    touch-action: none;
+}
+
+.pdfcompose-highlight-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+}
+
+
+pdfcompose-annotation-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    /* Die gesamte Bar bleibt flexibel */
+}
+
+.pdfcompose-annotation-toolbar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.pdfcompose-annotation-panel {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    max-width: min(55%, 600px);
+    min-width: 260px;
+    flex: 1 1 320px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+}
+
+.pdfcompose-panel-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.pdfcompose-panel-row input[type="number"] {
+    width: 60px;
+}
+
+.pdfcompose-selection-preview {
+    fill: rgba(80, 140, 255, 0.15);
+    stroke: rgba(80, 140, 255, 0.8);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+}
+
+.pdfcompose-object-selected {
+    outline: 2px dashed rgba(80, 140, 255, 0.9);
+    outline-offset: 2px;
+}
+
+
+.pdfcompose-selection-box {
+    fill: none;
+    stroke: rgba(80, 140, 255, 0.9);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+    pointer-events: none;
+}
+
+.pdfcompose-scale-handle {
+    fill: white;
+    stroke: rgba(80, 140, 255, 0.9);
+    stroke-width: 1.5;
+    cursor: nwse-resize;
+}
+
+.pdfcompose-rotate-stem {
+    stroke: rgba(80, 140, 255, 0.9);
+    stroke-width: 1;
+    pointer-events: none;
+}
+
+.pdfcompose-rotate-handle {
+    fill: white;
+    stroke: rgba(80, 140, 255, 0.9);
+    stroke-width: 1.5;
+    cursor: grab;
+}
+
+.pdfcompose-alpha-slider {
+    width: 60px;
+}
+
+.pdfcompose-width-readout {
+    min-width: 2em;
+    text-align: right;
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
+.pdfcompose-panel-hint {
+    color: var(--text-muted);
+    font-size: 0.8em;
+}
+
+/* Seitenleiste */
+.pdfcompose-sidebar {
+    position: relative;
+    background: var(--background-secondary);
+    border-right: 1px solid var(--background-modifier-border);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    transition: width 0.2s ease;
+    flex-shrink: 0;
+    /* Entspricht dem Minimalwert aus PdfComposeUI.startResize (Math.max(225, …)).
+       Ohne diese Absicherung gibt es keine harte Untergrenze auf CSS-Ebene. */
+    min-width: 225px;
+}
+
+.pdfcompose-sidebar-collapsed {
+    /* Eingeklappter Zustand setzt bewusst eine feste, kleinere Breite
+       (36px, siehe PdfComposeUI.toggleSidebar) - die normale Mindestbreite
+       darf dafür nicht gelten. */
+    min-width: 0;
+}
+
+/* Auf Mobile ist die Seitenleiste (insbes. die Seitenübersicht mit
+   Thumbnails, Checkbox, Label, Menü-Button) bei 225px zu eng, um noch
+   bedienbar zu sein - deshalb hier ca. ein Drittel breiter (entspricht
+   dem Wert, den PdfComposeUI für den initialen/Mindest-Wert auf Mobile
+   verwendet, siehe getMinSidebarWidth()). */
+body.is-mobile .pdfcompose-sidebar:not(.pdfcompose-sidebar-collapsed) {
+    min-width: 300px;
+}
+
+.pdfcompose-sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    gap: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0;
+}
+
+.pdfcompose-hamburger {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.pdfcompose-hamburger:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-sidebar-title {
+    font-weight: bold;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdfcompose-sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0;
+}
+
+.pdfcompose-tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 5px 4px;
+    font-size: 11px;
+}
+
+.pdfcompose-tab-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.pdfcompose-tab-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-tab-btn.pdfcompose-tab-active {
+    border-bottom-color: var(--interactive-accent);
+    color: var(--text-normal);
+}
+
+.pdfcompose-sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.pdfcompose-tab-pane {
+    height: 100%;
+}
+
+/* ============================================================
+   SEITENÜBERSICHT: zweispaltiges Grid, Steuerzeile unter der Miniatur
+   ============================================================ */
+.pdfcompose-sidebar-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.pdfcompose-sidebar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+    cursor: grab;
+    touch-action: pan-y;
+}
+
+.pdfcompose-sidebar-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-sidebar-item.pdfcompose-sidebar-highlight {
+    border-color: var(--text-accent);
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-thumbnail {
+    width: 100%;
+    height: auto;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.pdfcompose-thumb-canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.pdfcompose-sidebar-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pdfcompose-sidebar-label {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.pdfcompose-sidebar-source {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.pdfcompose-sidebar-controls .pdfcompose-sidebar-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.pdfcompose-sidebar-controls .pdfcompose-sidebar-checkbox {
+    position: static;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    background: none;
+}
+
+.pdfcompose-sidebar-controls .pdfcompose-sidebar-label {
+    font-size: 12px;
+}
+
+.pdfcompose-sidebar-controls .pdfcompose-sidebar-source {
+    font-size: 10px;
+}
+
+.pdfcompose-sidebar-controls .pdfcompose-sidebar-menu-btn {
+    position: static;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+    line-height: 26px;
+    padding: 0;
+    text-align: center;
+}
+
+.pdfcompose-sidebar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+
+.pdfcompose-sidebar-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+body.is-mobile .pdfcompose-tab-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+body.is-mobile .pdfcompose-tab-btn {
+    padding: 4px 2px;
+    font-size: 10px;
+}
+
+body.is-mobile .pdfcompose-sidebar-btn {
+    padding: 4px 6px;
+    font-size: 11px;
+}
+
+body.is-mobile .pdfcompose-sidebar-controls .pdfcompose-sidebar-menu-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    line-height: 22px;
+}
+
+body.is-mobile .pdfcompose-sidebar-controls .pdfcompose-sidebar-checkbox {
+    width: 16px;
+    height: 16px;
+}
+
+.pdfcompose-sidebar-delete,
+.pdfcompose-text-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.pdfcompose-sidebar-delete:hover,
+.pdfcompose-text-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-sidebar-btn {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.pdfcompose-sidebar-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pdfcompose-source-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+
+.pdfcompose-source-path {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdfcompose-source-path {
+    flex: 1;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.pdfcompose-source-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.pdfcompose-source-delete:hover {
+    color: var(--text-error);
+}
+
+.pdfcompose-search-input-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.pdfcompose-search-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    font-size: 13px;
+    margin-bottom: 0;
+}
+
+.pdfcompose-search-submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    padding: 0 6px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-secondary);
+    cursor: pointer;
+}
+
+.pdfcompose-search-submit-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    max-height: calc(100% - 50px);
+}
+
+.pdfcompose-search-result {
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.pdfcompose-search-result:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-sidebar-resize {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    touch-action: none;
+}
+
+.pdfcompose-sidebar-resize:hover {
+    background: var(--interactive-accent);
+    opacity: 0.3;
+}
+
+.pdfcompose-search-result-page {
+    font-weight: 600;
+}
+
+.pdfcompose-search-result-snippet {
+    color: var(--text-muted);
+}
+
+.pdfcompose-search-result-hit {
+    background: rgba(255, 200, 0, 0.4);
+    color: var(--text-normal);
+    font-weight: 600;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.pdfcompose-sidebar-collapsed .pdfcompose-sidebar-title,
+.pdfcompose-sidebar-collapsed .pdfcompose-sidebar-tabs,
+.pdfcompose-sidebar-collapsed .pdfcompose-sidebar-content {
+    display: none;
+}
+
+.pdfcompose-sidebar-collapsed .pdfcompose-sidebar-header {
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.pdfcompose-textblock {
+    position: absolute;
+    border: 1px dashed transparent;
+    background: rgba(255, 255, 255, 0.001);
+    pointer-events: auto;
+    position: absolute;
+    z-index: 21;
+}
+
+.pdfcompose-textblock:hover {
+    border-color: rgba(80, 140, 255, 0.5);
+}
+
+.pdfcompose-textblock-editbar {
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(80, 140, 255, 0.08);
+    border-bottom: 1px dashed rgba(80, 140, 255, 0.4);
+    padding: 1px 3px;
+    position: relative;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.pdfcompose-textblock-editbtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 1px 4px;
+    border-radius: 3px;
+    position: relative;
+    z-index: 101;
+    pointer-events: auto;
+}
+
+.pdfcompose-textblock-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    pointer-events: none;
+    z-index: 20;
+}
+
+.pdfcompose-textblock-editbtn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+/*
+.pdfcompose-textblock-inner {
+    /* trägt den zoom-Faktor, siehe PdfComposeUI.renderTextBlock /
+} */
+
+/* dunkler Hintergrund → helle Schrift */
+.pdfcompose-textblock-dark-bg,
+.pdfcompose-textblock-dark-bg * {
+    color: #f2f2f2 !important;
+}
+
+/* heller Hintergrund → dunkle Schrift */
+.pdfcompose-textblock-light-bg,
+.pdfcompose-textblock-light-bg * {
+    color: #1a1a1a !important;
+}
+
+.pdfcompose-textblock-handle {
+    position: absolute;
+    background: var(--interactive-accent);
+    border: 1px solid white;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 5;
+    /* Ohne dies bricht der Browser eine laufende Verschiebe-/Breiten-
+       Geste nach wenigen Pixeln ab und wechselt stattdessen in eine
+       native Scroll-Geste des Seiten-Containers (preventDefault() im
+       pointerdown-Handler allein verhindert das NICHT). */
+    touch-action: none;
+}
+
+.pdfcompose-textblock:hover .pdfcompose-textblock-handle {
+    opacity: 1;
+}
+
+/* Auf Touch gibt es kein verlässliches :hover - Handles bleiben daher
+   dauerhaft sichtbar, sonst sind sie auf Mobile praktisch nicht greifbar. */
+body.is-mobile .pdfcompose-textblock-handle,
+body.is-mobile .pdfcompose-pdfannot-handle-v {
+    opacity: 1;
+}
+
+.pdfcompose-textblock-handle-pos {
+    top: -6px;
+    left: -6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    cursor: move;
+}
+
+.pdfcompose-textblock-handle-width {
+    top: 0;
+    right: -4px;
+    width: 8px;
+    height: 100%;
+    border-radius: 2px;
+    cursor: ew-resize;
+}
+
+.pdfcompose-textblock-font-row {
+    width: 100%;
+    align-items: center;
+}
+
+.pdfcompose-textblock-font-slider {
+    flex: 1 1 auto;
+    min-width: 160px;
+}
+
+.pdfcompose-textblock-font-value {
+    min-width: 4.5em;
+    text-align: right;
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
+.pdfcompose-textblock-editor {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    margin-top: 8px;
+}
+
+.pdfcompose-textblock-button-row {
+    margin-top: 10px;
+    justify-content: flex-end;
+}
+
+.pdfcompose-tool-group {
+    position: relative;
+    display: inline-flex;
+    overflow: visible;
+}
+
+.pdfcompose-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 4px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.pdfcompose-dropdown .pdfcompose-tool-btn {
+    display: inline-flex;
+    width: auto;
+    margin: 0;
+}
+
+/* Hervorhebung der gesamten Gruppe, wenn ein Werkzeug daraus aktiv ist */
+.pdfcompose-group-active {
+    background: var(--background-modifier-hover);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.pdfcompose-page-body {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.pdfcompose-annotation-column {
+    position: relative;
+    flex: 0 0 auto;
+    margin-left: 16px;
+}
+
+.pdfcompose-connector-layer {
+    overflow: visible;
+    mix-blend-mode: multiply;
+}
+
+.pdfcompose-pdfannot {
+    position: absolute;
+    left: 0;
+    border-left: 4px solid var(--pdfannot-color, var(--interactive-accent));
+    background: var(--background-primary);
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    padding: 2px 6px 6px 6px;
+}
+
+.pdfcompose-pdfannot-editbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pdfcompose-pdfannot-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: auto;
+}
+
+.pdfcompose-pdfannot-handle-v {
+    position: absolute;
+    top: -4px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    cursor: ns-resize;
+    opacity: 0;
+    background: var(--pdfannot-color, var(--interactive-accent));
+    border-radius: 2px;
+    transition: opacity 0.15s;
+    touch-action: none;
+}
+
+.pdfcompose-pdfannot:hover .pdfcompose-pdfannot-handle-v,
+.pdfcompose-pdfannot:hover .pdfcompose-textblock-handle-width {
+    opacity: 1;
+}
+
+.pdfcompose-point-handle {
+    fill: white;
+    stroke: rgba(255, 120, 30, 0.9);
+    stroke-width: 1.5;
+    cursor: pointer;
+}
+
+
+/* styles.css – neue Klassen */
+.pdfcompose-sidebar-dragging {
+    opacity: 0.4;
+}
+
+.pdfcompose-sidebar-drop-indicator {
+    height: 2px;
+    background: var(--interactive-accent);
+    border-radius: 2px;
+    pointer-events: none;
+    margin: 0;
+    /* wichtig, damit keine zusätzliche Höhe entsteht */
+}
+
+.pdfcompose-sidebar-drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.pdfcompose-sidebar-drop-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--interactive-accent);
+    border-radius: 2px;
+    transform: translateY(-1px);
+    pointer-events: none;
+}
+
+.pdfcompose-sidebar-dragging {
+    opacity: 0.4;
+}
+
+.pdfcompose-sidebar-item {
+    position: relative;
+}
+
+.pdfcompose-sidebar-checkbox {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 2;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    background: var(--background-primary);
+    border-radius: 2px;
+    margin: 0;
+}
+
+.pdfcompose-sidebar-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 3;
+    flex-shrink: 0;
+}
+
+.pdfcompose-sidebar-menu-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.pdfcompose-sidebar-checkbox {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 2;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    background: var(--background-primary);
+    border-radius: 2px;
+    margin: 0;
+}
+
+.pdfcompose-sidebar-item {
+    position: relative;
+    cursor: grab;
+    margin-bottom: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 6px;
+    background: var(--background-primary);
+    transition: all 0.2s;
+}
+
+.pdfcompose-sidebar-item:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.pdfcompose-sidebar-dragging {
+    opacity: 0.4;
+}
+
+.pdfcompose-sidebar-drop-indicator {
+    height: 2px;
+    background: var(--interactive-accent);
+    margin: 2px 0;
+    border-radius: 2px;
+}
+
+.pdfcompose-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    /* ... */
+}
+
+.pdfcompose-sidebar-content-wrapper {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    /* für overflow */
+}
+
+.pdfcompose-sidebar-thumbnail {
+    flex-shrink: 0;
+    width: 60px;
+    height: 45px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--background-secondary);
+}
+
+.pdfcompose-sidebar-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.pdfcompose-sidebar-label {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.pdfcompose-sidebar-source {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pdfcompose-undoredo-group {
+    display: flex;
+    gap: 4px;
+    padding-right: 6px;
+    margin-right: 6px;
+    border-right: 1px solid var(--background-modifier-border);
+}
+
+.pdfcompose-tool-btn-disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+
+.pdfcompose-source-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.pdfcompose-source-info strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdfcompose-source-info small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.pdfcompose-source-missing {
+    color: var(--text-error) !important;
+}
+
+.pdfcompose-source-menu {
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    max-width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+
+    cursor: pointer;
+    border-radius: 4px;
+
+    font-size: 18px;
+    line-height: 28px;
+    text-align: center;
+}
+
+.pdfcompose-source-menu:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.pdfcompose-source-warning {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 6px;
+    background: var(--background-modifier-error);
+    border: 1px solid var(--text-error);
+}
+
+.pdfcompose-source-path-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+}
+
+.pdfcompose-source-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 12px;
+}
+
+.pdfcompose-source-suggestions-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.pdfcompose-source-suggestion {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 5px;
+    background: var(--background-primary);
+    cursor: pointer;
+    text-align: left;
+}
+
+.pdfcompose-source-suggestion:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-source-suggestion small {
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.pdfcompose-source-delete-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    margin: 4px 0;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.pdfcompose-source-delete-option:hover {
+    background: var(--background-modifier-hover);
+}
+
+.pdfcompose-source-template-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.pdfcompose-source-template-row select {
+    flex: 1;
+}
+
+.pdfcompose-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.pdfcompose-zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+    justify-content: center;
+}
+
+.pdfcompose-bottom-right-stack {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.pdfcompose-action-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+}
+
+.pdfcompose-colormode-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(8px);
+}
+
+.pdfcompose-stylus-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pdfcompose-stylus-toggle-label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/*
+.pdfcompose-image-protect-canvas {
+     bewusst kein filter – zeigt eingebettete Bilder unverändert 
+}*/
+
+.pdfcompose-zoom-label {
+    min-width: 3.5em;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.pdfcompose-paste-btn {
+    margin-right: 4px;
+}
+
+.pdfcompose-search-group-header {
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    margin: 10px 0 4px 0;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pdfcompose-search-group-header:first-child {
+    margin-top: 0;
+}
+
+.pdfcompose-search-subgroup-header {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 4px 0 2px 4px;
+}
+
+.pdfcompose-search-highlight {
+    outline: 2px solid #ff6b6b;
+    outline-offset: 2px;
+    background-color: rgba(255, 107, 107, 0.08);
+    border-radius: 2px;
+}
+
+
+.pdfcompose-sidebar-item.pdfcompose-sidebar-current {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+
+.pdfcompose-link-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.pdfcompose-pdf-link {
+    position: absolute;
+    display: block;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.pdfcompose-pdf-link:hover {
+    outline: 1px dashed rgba(80, 140, 255, 0.7);
+    background: rgba(80, 140, 255, 0.08);
+}
+
+.pdfcompose-sidebar-item.pdfcompose-sidebar-drop-target {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: -2px;
+}
+
+.pdfcompose-sidebar-item.pdfcompose-sidebar-drop-target-before {
+    box-shadow: 0 -3px 0 0 var(--interactive-accent);
+}
+
+.pdfcompose-sidebar-item.pdfcompose-sidebar-drop-target-after {
+    box-shadow: 0 3px 0 0 var(--interactive-accent);
+}
+
+.pdfcompose-selection-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.pdfcompose-selection-row .pdfcompose-sidebar-btn {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* ============================================================
+   MOBILE-ANPASSUNGEN (Obsidian setzt body.is-mobile automatisch)
+   ============================================================ */
+.pdfcompose-overlay-bar {
+    position: absolute;
+    top: 16px;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0 16px;
+    pointer-events: none;
+    flex-wrap: wrap;
+}
+
+.pdfcompose-overlay-bar>* {
+    pointer-events: auto;
+}
+
+.pdfcompose-content-area {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+body.is-mobile .pdfcompose-annotation-bar {
+    padding: 3px 6px;
+    gap: 2px;
+    max-width: 72%;
+    border-radius: 6px;
+}
+
+body.is-mobile .pdfcompose-annotation-panel {
+    padding: 3px 6px;
+    gap: 4px;
+    min-width: 0;
+    max-width: 72%;
+    border-radius: 6px;
+}
+
+body.is-mobile .pdfcompose-tool-btn {
+    padding: 3px 6px;
+    font-size: 0.8em;
+    min-width: 24px;
+    line-height: 1.1;
+}
+
+body.is-mobile .pdfcompose-dropdown {
+    padding: 2px;
+    gap: 2px;
+}
+
+.pdfcompose-panel-label,
+.pdfcompose-panel-caption {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pdfcompose-panel-label svg,
+.pdfcompose-panel-caption svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.pdfcompose-bind-target {
+    outline: 3px solid rgba(64, 192, 87, 0.9);
+    outline-offset: 3px;
+}
+
+.pdfcompose-point-handle-bound {
+    filter: drop-shadow(0 0 2px rgba(64, 192, 87, 0.8));
+}
+
+.pdfcompose-search-result .pdfcompose-search-preview {
+    display: block;
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    margin: 4px auto 2px auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 3px;
+    background: #fff;
+    image-rendering: auto;
+}
+
+.pdfcompose-page.pdfcompose-cross-page-source {
+    position: relative;
+    z-index: 5;
+}
+
+.pdfcompose-page.pdfcompose-cross-page-target {
+    outline: 3px dashed var(--interactive-accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+.pdfcompose-bezier-debug {
+    /* Blendmode "multiply" macht die Debug-Zeichnung auch über hellen
+       Bereich sichtbar, ohne den darunterliegenden Inhalt zu verdecken. */
+    mix-blend-mode: multiply;
+}
+
+body.is-mobile .pdfcompose-panel-label-text {
+    display: none;
+}
+
+body.is-mobile .pdfcompose-panel-row {
+    gap: 2px;
+}
+
+body.is-mobile .pdfcompose-panel-row input[type="color"] {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+}
+
+body.is-mobile .pdfcompose-alpha-slider,
+body.is-mobile .pdfcompose-panel-row input[type="range"] {
+    width: 90px;
+    flex: 1 1 90px;
+}
+
+body.is-mobile .pdfcompose-undoredo-group {
+    padding-right: 3px;
+    margin-right: 3px;
+    gap: 2px;
+}
+
+body.is-mobile .pdfcompose-zoom-control,
+body.is-mobile .pdfcompose-colormode-control {
+    padding: 2px 5px;
+    gap: 2px;
+}
+
+body.is-mobile .pdfcompose-zoom-label {
+    min-width: 2.6em;
+    font-size: 11px;
+}
+
+body.is-mobile .pdfcompose-action-panel .pdfcompose-tool-btn {
+    padding: 3px 6px;
+    font-size: 0.8em;
+}
+
+body.is-mobile .pdfcompose-bottom-right-stack {
+    bottom: 8px;
+    right: 8px;
+    gap: 4px;
+}
+
+body.is-mobile .pdfcompose-sidebar-resize {
+    width: 18px;
+    right: -9px;
+}
+
+/* Fingerscrollen erlauben; Pinch übernimmt PdfComposeView per JS */
+body.is-mobile .pdfcompose-pages-container {
+    touch-action: pan-x pan-y;
+}
+
+/* ---------- Vollbildmodus ---------- */
+/* Kopfleiste der View (Titel + Drei-Punkte-Menü) */
+.workspace-leaf-content.pdfcompose-fullscreen-leaf > .view-header {
+    display: none !important;
+}
+
+/* Tab-Leiste oben (nur die Tab-Gruppe, in der diese View liegt) */
+.workspace-tabs.pdfcompose-fullscreen-tabs > .workspace-tab-header-container {
+    display: none !important;
+}
+
+/* Untere Leiste: Statusleiste (Desktop) bzw. Navigationsleiste (Mobile/Tablet) */
+body.pdfcompose-fullscreen .status-bar,
+body.pdfcompose-fullscreen .mobile-navbar {
+    display: none !important;
+}
+body.pdfcompose-fullscreen.is-mobile {
+    --mobile-navbar-height: 0px;
+}

@@ -1,0 +1,49 @@
+PDF Compose Non-Commercial License
+
+Copyright (c) 2026 Theodor Markus Kaiser
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to use, copy, and modify the Software, and to distribute
+copies of the Software or of modified versions of it, subject to the
+following conditions:
+
+1. Non-Commercial Use Only
+   The Software, whether unmodified or modified, may not be used, sold,
+   sublicensed, or distributed, in whole or in part, for commercial
+   purposes. "Commercial purposes" means any use primarily intended for
+   or directed toward commercial advantage or monetary compensation,
+   including (but not limited to) selling the Software, bundling it
+   with a paid product or service, or offering it as part of a paid
+   service.
+
+2. Attribution
+   The above copyright notice and this license text must be included,
+   unmodified, in all copies or substantial portions of the Software,
+   including modified versions.
+
+3. Same License for Modifications
+   If you distribute a modified version of the Software, you must
+   distribute it under this same license, so that it remains
+   non-commercial and freely copyable and modifiable under the same
+   terms.
+
+4. No Additional Restrictions
+   You may not apply legal terms, technological measures (e.g. DRM), or
+   other restrictions that legally prevent others from doing anything
+   this license permits.
+
+5. No Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+   BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+Note: This license applies to the plugin's own source code. It does not
+change or override the separate license terms of any third-party
+resources the plugin can download or use (for example, an OCR model),
+which remain governed by their own license.
