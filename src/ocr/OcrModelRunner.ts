@@ -73,57 +73,27 @@ export interface OcrRecognitionResult {
 
 const FEATURES_PER_POINT = 3; // [x, y, t] – siehe OcrStrokeCollector.buildNormalizedInk
 
-/** Modulweiter Cache, damit die <script>-Tags nur einmal pro Obsidian-Sitzung geladen werden. */
-let runtimeLoadPromise: Promise<{ tf: any; tflite: any }> | null = null;
+// Statische UMD-Imports statt Laufzeit-<script>-Injection: esbuild bündelt
+// diese fertigen Browser-Bundles unverändert mit in main.js. Dadurch
+// erzeugt das Plugin zu keinem Zeitpunkt mehr ein <script>-Element zur
+// Laufzeit (was von Obsidians Review als potenzielles Sicherheitsrisiko
+// eingestuft wird), obwohl die Laufzeit weiterhin exakt dieselbe ist wie
+// vorher (dieselben UMD-Dateien, nur anders eingebunden).
+import "@tensorflow/tfjs/dist/tf.min.js";
+import "@tensorflow/tfjs-tflite/dist/tf-tflite.min.js";
 
-function loadScriptOnce(url: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-ocr-runtime-src="${url}"]`);
-        if (existing) {
-            if (existing.getAttribute("data-ocr-runtime-loaded") === "true") {
-                resolve();
-            } else {
-                existing.addEventListener("load", () => resolve());
-                existing.addEventListener("error", () =>
-                    reject(new Error(`OCR: Skript konnte nicht geladen werden: ${url}`))
-                );
-            }
-            return;
-        }
-        const script = document.createElement("script");
-        script.src = url;
-        script.async = true;
-        script.setAttribute("data-ocr-runtime-src", url);
-        script.addEventListener("load", () => {
-            script.setAttribute("data-ocr-runtime-loaded", "true");
-            resolve();
-        });
-        script.addEventListener("error", () =>
-            reject(new Error(`OCR: Skript konnte nicht geladen werden: ${url}`))
+declare const tf: any;
+declare const tflite: any;
+
+function getRuntime(): { tf: any; tflite: any } {
+    const w = window as any;
+    if (!w.tf || !w.tflite) {
+        throw new Error(
+            "OCR: tf.min.js/tf-tflite.min.js wurden gebündelt, aber die " +
+            "erwarteten globalen Variablen `tf`/`tflite` sind nicht vorhanden."
         );
-        document.head.appendChild(script);
-    });
-}
-
-async function loadRuntimeViaScriptTags(tfJsUrl: string, tfliteJsUrl: string): Promise<{ tf: any; tflite: any }> {
-    if (!runtimeLoadPromise) {
-        runtimeLoadPromise = (async () => {
-            await loadScriptOnce(tfJsUrl);
-            await loadScriptOnce(tfliteJsUrl);
-            const w = window as any;
-            if (!w.tf || !w.tflite) {
-                throw new Error(
-                    "OCR: tf.min.js/tf-tflite.min.js wurden geladen, aber die erwarteten globalen " +
-                    "Variablen `tf`/`tflite` sind nicht vorhanden."
-                );
-            }
-            return { tf: w.tf, tflite: w.tflite };
-        })().catch((err) => {
-            runtimeLoadPromise = null;
-            throw err;
-        });
     }
-    return runtimeLoadPromise;
+    return { tf: w.tf, tflite: w.tflite };
 }
 
 export class OcrModelRunner {
@@ -198,7 +168,7 @@ export class OcrModelRunner {
             };
 
             // 3. Laufzeit und Modell laden (die Interzeptoren greifen jetzt automatisch)
-            const runtime = await loadRuntimeViaScriptTags(source.tfJsUrl, source.tfliteJsUrl);
+            const runtime = getRuntime();
             this.tf = runtime.tf;
 
             if (runtime.tflite.setWasmPath && source.wasmBaseUrl) {

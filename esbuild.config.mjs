@@ -120,13 +120,6 @@ const context = await esbuild.context({
 		'@lezer/common',
 		'@lezer/highlight',
 		'@lezer/lr',
-		// @tensorflow/tfjs und @tensorflow/tfjs-tflite werden NICHT gebündelt
-		// (siehe copyTfliteRuntimeAssets/OcrModelRunner.ts) – sie werden zur
-		// Laufzeit per <script>-Tag geladen, nicht per import()/require().
-		// Es gibt daher im Quellcode auch keine Imports dieser Pakete mehr,
-		// dieser Eintrag ist nur zur Klarheit/Dokumentation vorhanden.
-		'@tensorflow/tfjs',
-		'@tensorflow/tfjs-tflite',
 		...builtinModules,
 	],
 	format: 'cjs',

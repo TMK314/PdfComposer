@@ -20,6 +20,9 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-tflite": "^0.0.1-alpha.10",
+    "js-yaml": "^5.4.2",
     "pako": "^2.1.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174"

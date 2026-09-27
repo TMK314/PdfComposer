@@ -412,7 +412,7 @@ export class PdfComposeView extends ItemView {
         const container = this.containerEl.children[1] as HTMLElement;
         this.ui = new PdfComposeUI(this.plugin, this, container);
         this.ui.buildLayout();
-        this.ui.pagesContainerEl.style.overflowAnchor = "none";
+        this.ui.pagesContainerEl.setCssStyles({ overflowAnchor: "none" });
 
         this.ui.buildAnnotationToolbar((tool) => this.setActiveTool(tool));
         this.ui.updateUndoRedoButtons(this.undoManager.canUndo(), this.undoManager.canRedo());
@@ -741,13 +741,11 @@ export class PdfComposeView extends ItemView {
     private applyHorizontalLayoutStyles(horizontal: boolean): void {
         const content = this.ui.pagesContentEl;
         if (content) {
-            content.style.gap = horizontal ? "6px" : "24px";
-            content.style.flexDirection = horizontal ? "row" : "column";
-            content.style.alignItems = horizontal ? "flex-start" : "center";
+            content.setCssStyles({ gap: horizontal ? "6px" : "24px", flexDirection: horizontal ? "row" : "column", alignItems: horizontal ? "flex-start" : "center" });
         }
         const container = this.ui.pagesContainerEl;
         if (container) {
-            container.style.padding = horizontal ? "56px 12px 12px 12px" : "80px 24px 24px 24px";
+            container.setCssStyles({ padding: horizontal ? "56px 12px 12px 12px" : "80px 24px 24px 24px" });
         }
     }
 
@@ -1905,8 +1903,7 @@ export class PdfComposeView extends ItemView {
             const ctx = canvas.getContext("2d");
             if (!ctx) throw new Error("Konnte 2D-Rendering-Kontext des Canvas nicht erstellen.");
             drawTemplatePattern(ctx, page.template ?? "blank", size.width, size.height, scale * dpr, dark);
-            canvas.style.width = `${size.width * scale}px`;
-            canvas.style.height = `${size.height * scale}px`;
+            canvas.setCssStyles({ width: `${size.width * scale}px`, height: `${size.height * scale}px` });
             this.pageLogicalSize.set(page.id, { width: size.width * scale, height: size.height * scale });
             this.pageRasterMultiplier.set(page.id, dpr);
 
@@ -1978,8 +1975,7 @@ export class PdfComposeView extends ItemView {
             this.pageIsDarkOriginal.set(page.id, isDarkOriginal);
 
             // viewport.width/height = CSS-Anzeigegröße (DEFAULT_RENDER_SCALE * pageSize)
-            canvas.style.width = `${viewport.width}px`;
-            canvas.style.height = `${viewport.height}px`;
+            canvas.setCssStyles({ width: `${viewport.width}px`, height: `${viewport.height}px` });
 
             await this.applyColorModeToPageCanvas(
                 page, wrapper, canvas, sourcePath,
@@ -1991,8 +1987,7 @@ export class PdfComposeView extends ItemView {
             this.pageLogicalSize.set(page.id, { width: viewport.width, height: viewport.height });
 
             // Feste, zoomunabhängige Anzeigegröße (siehe renderBlankTemplatePage).
-            canvas.style.width = `${viewport.width}px`;
-            canvas.style.height = `${viewport.height}px`;
+            canvas.setCssStyles({ width: `${viewport.width}px`, height: `${viewport.height}px` });
             this.pageLogicalSize.set(page.id, { width: viewport.width, height: viewport.height });
 
             const effectiveScale = DEFAULT_RENDER_SCALE;
@@ -2063,7 +2058,7 @@ export class PdfComposeView extends ItemView {
         // Stift darf nicht scrollen, Finger schon: touch-action wird vor dem Aufsetzen gesetzt.
         textLayer.addEventListener("pointerover", (e: PointerEvent) => {
             this.lastPointerType = e.pointerType;
-            textLayer.style.touchAction = e.pointerType === "pen" ? "none" : "";
+            textLayer.setCssStyles({ touchAction: e.pointerType === "pen" ? "none" : "" });
         });
 
         const clearTimer = () => {
@@ -2235,7 +2230,7 @@ export class PdfComposeView extends ItemView {
         wrapper.querySelector(".pdfcompose-image-protect-canvas")?.remove();
 
         const filter = this.buildPageFilter(page);
-        canvas.style.filter = filter;
+        canvas.setCssStyles({ filter: filter });
         if (!filter.includes("invert(1)")) return;
 
         void this.renderer.getImageRegions(sourcePath, page.srcPage).then((regions) => {
@@ -2246,12 +2241,7 @@ export class PdfComposeView extends ItemView {
             protectCanvas.className = "pdfcompose-image-protect-canvas";
             protectCanvas.width = canvas.width;
             protectCanvas.height = canvas.height;
-            protectCanvas.style.position = "absolute";
-            protectCanvas.style.top = "0";
-            protectCanvas.style.left = "0";
-            protectCanvas.style.width = `${logicalWidth}px`;
-            protectCanvas.style.height = `${logicalHeight}px`;
-            protectCanvas.style.pointerEvents = "none";
+            protectCanvas.setCssStyles({ position: "absolute", top: "0", left: "0", width: `${logicalWidth}px`, height: `${logicalHeight}px`, pointerEvents: "none" });
 
             const ctx = protectCanvas.getContext("2d");
             if (!ctx) return;
@@ -2413,7 +2403,7 @@ export class PdfComposeView extends ItemView {
         if (!range) { overlay?.remove(); return; }
         if (!overlay) {
             overlay = wrapper.createDiv({ cls: "pdfcompose-text-selection-overlay" });
-            Object.assign(overlay.style, {
+            overlay.setCssStyles({
                 position: "absolute", top: "0", left: "0", right: "0", bottom: "0",
                 pointerEvents: "none", zIndex: "24",
             });
@@ -2423,7 +2413,7 @@ export class PdfComposeView extends ItemView {
         const z = this.zoomLevel;
         for (const r of this.rangeLineRects(range, textLayer)) {
             const d = overlay.createDiv();
-            Object.assign(d.style, {
+            d.setCssStyles({
                 position: "absolute",
                 left: `${(r.left - wr.left) / z}px`,
                 top: `${(r.top - wr.top) / z}px`,
@@ -2480,17 +2470,17 @@ export class PdfComposeView extends ItemView {
         this.ui.pruneConnectors(pageId, new Set(entries.map(e => e.id)));
 
         if (entries.length === 0) {
-            column.style.display = "none";
+            column.setCssStyles({ display: "none" });
             return;
         }
-        column.style.display = "";
+        column.setCssStyles({ display: "" });
 
         const page = this.getPageDefinition(pageId);
         const invert = page ? this.isPageInverted(page) : false;
 
         let maxWidth = 220;
         for (const entry of entries) maxWidth = Math.max(maxWidth, entry.width);
-        column.style.width = ((maxWidth + 20) * scale) + "px";
+        column.setCssStyles({ width: ((maxWidth + 20) * scale) + "px" });
 
         for (const entry of entries) {
             const comp = new Component();
@@ -2545,7 +2535,7 @@ export class PdfComposeView extends ItemView {
         const makeHandle = (kind: "start" | "end"): HTMLElement => {
             const size = Platform.isMobile ? 24 : 16;
             const h = opts.wrapper.createDiv({ cls: "pdfcompose-range-handle" });
-            Object.assign(h.style, {
+            h.setCssStyles({
                 position: "absolute", width: `${size}px`, height: `${size}px`, borderRadius: "50%",
                 background: opts.color, border: "2px solid #ffffff", boxShadow: "0 0 3px rgba(0,0,0,0.7)",
                 zIndex: "60", touchAction: "none", cursor: "col-resize",
@@ -2558,7 +2548,7 @@ export class PdfComposeView extends ItemView {
         let toolbar: HTMLElement | null = null;
         if (opts.actions && opts.actions.length > 0) {
             toolbar = document.body.createDiv({ cls: "pdfcompose-selection-toolbar" });
-            Object.assign(toolbar.style, {
+            toolbar.setCssStyles({
                 position: "fixed", zIndex: "10000", display: "flex", gap: "6px", padding: "6px",
                 background: "var(--background-primary)", border: "1px solid var(--background-modifier-border)",
                 borderRadius: "8px", boxShadow: "var(--shadow-s)",
@@ -2687,15 +2677,12 @@ export class PdfComposeView extends ItemView {
         const first = rects[0], last = rects[rects.length - 1];
         const wr = s.wrapper.getBoundingClientRect();
         const z = this.zoomLevel;
-        s.startHandle.style.left = `${(first.left - wr.left) / z}px`;
-        s.startHandle.style.top = `${(first.top - wr.top) / z}px`;
-        s.endHandle.style.left = `${(last.right - wr.left) / z}px`;
-        s.endHandle.style.top = `${(last.bottom - wr.top) / z}px`;
+        s.startHandle.setCssStyles({ left: `${(first.left - wr.left) / z}px`, top: `${(first.top - wr.top) / z}px` });
+        s.endHandle.setCssStyles({ left: `${(last.right - wr.left) / z}px`, top: `${(last.bottom - wr.top) / z}px` });
 
         if (s.toolbar) {
             const w = s.toolbar.offsetWidth || 160;
-            s.toolbar.style.left = `${Math.max(8, Math.min(window.innerWidth - w - 8, first.left))}px`;
-            s.toolbar.style.top = `${Math.max(8, first.top - 52)}px`;
+            s.toolbar.setCssStyles({ left: `${Math.max(8, Math.min(window.innerWidth - w - 8, first.left))}px`, top: `${Math.max(8, first.top - 52)}px` });
         }
     }
 
@@ -2769,9 +2756,9 @@ export class PdfComposeView extends ItemView {
         const dy = ref.y - (hr.top + hr.height / 2);
 
         s.dragging = true;
-        s.startHandle.style.pointerEvents = "none";
-        s.endHandle.style.pointerEvents = "none";
-        if (s.toolbar) s.toolbar.style.visibility = "hidden";
+        s.startHandle.setCssStyles({ pointerEvents: "none" });
+        s.endHandle.setCssStyles({ pointerEvents: "none" });
+        if (s.toolbar) s.toolbar.setCssStyles({ visibility: "hidden" });
 
         let startPos = { node: s.range.startContainer, offset: s.range.startOffset };
         let endPos = { node: s.range.endContainer, offset: s.range.endOffset };
@@ -2803,9 +2790,9 @@ export class PdfComposeView extends ItemView {
             const session = this.rangeSession;
             if (!session) return;
             session.dragging = false;
-            session.startHandle.style.pointerEvents = "auto";
-            session.endHandle.style.pointerEvents = "auto";
-            if (session.toolbar) session.toolbar.style.visibility = "";
+            session.startHandle.setCssStyles({ pointerEvents: "auto" });
+            session.endHandle.setCssStyles({ pointerEvents: "auto" });
+            if (session.toolbar) session.toolbar.setCssStyles({ visibility: "" });
             this.layoutRangeSession();
             await session.onCommit();
         };
@@ -2830,7 +2817,7 @@ export class PdfComposeView extends ItemView {
             ev.preventDefault();
             const dy = (ev.clientY - startY) / (scale * this.zoomLevel);
             entry.y = Math.max(0, originY + dy);
-            if (boxEl) boxEl.style.top = (entry.y * scale) + "px";
+            if (boxEl) boxEl.setCssStyles({ top: (entry.y * scale) + "px" });
             this.ui.updateConnector(pageId, entry);
         };
         const onUp = async () => {
@@ -2863,8 +2850,8 @@ export class PdfComposeView extends ItemView {
             ev.preventDefault();
             const dx = (ev.clientX - startX) / scale;
             entry.width = Math.max(80, originWidth + dx);
-            if (boxEl) boxEl.style.width = (entry.width * scale) + "px";
-            if (innerEl) innerEl.style.width = ((entry.width * scale) / zoomFactor) + "px";
+            if (boxEl) boxEl.setCssStyles({ width: (entry.width * scale) + "px" });
+            if (innerEl) innerEl.setCssStyles({ width: ((entry.width * scale) / zoomFactor) + "px" });
             this.ui.updateConnector(pageId, entry);
         };
         const onUp = async () => {
@@ -4291,30 +4278,22 @@ export class PdfComposeView extends ItemView {
         const block = container.createDiv({ cls: "pdfcompose-textblock" });
         block.setAttribute("data-textblock-id", entry.id);
 
-        block.style.position = "absolute";
-        block.style.left = (entry.x * scale) + "px";
-        block.style.top = (entry.y * scale) + "px";
-        block.style.width = (entry.width * scale) + "px";
+        block.setCssStyles({ position: "absolute", left: (entry.x * scale) + "px", top: (entry.y * scale) + "px", width: (entry.width * scale) + "px" });
 
-        block.style.pointerEvents = "auto";
-        block.style.zIndex = "21";
+        block.setCssStyles({ pointerEvents: "auto", zIndex: "21" });
 
         const editBar = block.createDiv({
             cls: "pdfcompose-textblock-editbar"
         });
 
-        editBar.style.pointerEvents = "auto";
-        editBar.style.position = "relative";
-        editBar.style.zIndex = "100";
+        editBar.setCssStyles({ pointerEvents: "auto", position: "relative", zIndex: "100" });
 
         const editBtn = editBar.createEl("button", {
             text: "✎ Bearbeiten",
             cls: "pdfcompose-textblock-editbtn"
         });
 
-        editBtn.style.pointerEvents = "auto";
-        editBtn.style.position = "relative";
-        editBtn.style.zIndex = "101";
+        editBtn.setCssStyles({ pointerEvents: "auto", position: "relative", zIndex: "101" });
 
         editBtn.addEventListener("pointerdown", (e) => {
             e.stopPropagation();
@@ -4344,12 +4323,11 @@ export class PdfComposeView extends ItemView {
 
         const zoomFactor = (entry.fontScale || 100) / 100;
         const inner = block.createDiv({ cls: "pdfcompose-textblock-inner" });
-        inner.style.width = ((entry.width * scale) / zoomFactor) + "px";
-        (inner.style as any).zoom = zoomFactor.toString();
+        inner.setCssStyles({ width: ((entry.width * scale) / zoomFactor) + "px", zoom: zoomFactor.toString() } as any);
         // Textfarbe an Hell-/Dunkelmodus bzw. Invertierung der Seite
         // anpassen, ohne die Markdown-Formatierung selbst zu überschreiben
         // (nur eine Vorgabe auf dem äußeren Container).
-        inner.style.color = invert ? "#f2f2f2" : "";
+        inner.setCssStyles({ color: invert ? "#f2f2f2" : "" });
 
         const markdown = entry.markdown.trim() ? entry.markdown : "*(leer – auf ✎ klicken zum Bearbeiten)*";
         await MarkdownRenderer.render(this.plugin.app, markdown, inner, sourcePath, component);
@@ -4389,8 +4367,7 @@ export class PdfComposeView extends ItemView {
             entry.x = originX + dx;
             entry.y = originY + dy;
             if (blockEl) {
-                blockEl.style.left = (entry.x * scale) + "px";
-                blockEl.style.top = (entry.y * scale) + "px";
+                blockEl.setCssStyles({ left: (entry.x * scale) + "px", top: (entry.y * scale) + "px" });
             }
         };
         const onUp = async () => {
@@ -4434,8 +4411,8 @@ export class PdfComposeView extends ItemView {
             ev.preventDefault();
             const dx = (ev.clientX - startX) / (scale * this.zoomLevel);
             entry.width = Math.max(20, originWidth + dx);
-            if (blockEl) blockEl.style.width = (entry.width * scale) + "px";
-            if (innerEl) innerEl.style.width = ((entry.width * scale) / zoomFactor) + "px";
+            if (blockEl) blockEl.setCssStyles({ width: (entry.width * scale) + "px" });
+            if (innerEl) innerEl.setCssStyles({ width: ((entry.width * scale) / zoomFactor) + "px" });
         };
         const onUp = async () => {
             window.removeEventListener("pointermove", onMove);
@@ -4656,7 +4633,7 @@ export class PdfComposeView extends ItemView {
             this.pendingEraseIds.add(obj.id);
             for (const layer of this.ui.getObjectLayers(pageId)) {
                 layer.querySelectorAll<SVGElement>(`[data-object-id="${obj.id}"]`)
-                    .forEach(el => { el.style.opacity = "0.25"; });
+                    .forEach(el => { el.setCssStyles({ opacity: "0.25" }); });
             }
         }
 
@@ -4671,7 +4648,7 @@ export class PdfComposeView extends ItemView {
                 } catch { /* ignore */ }
                 if (hit) {
                     this.pendingEraseAnnotationIds.add(annotId);
-                    el.style.opacity = "0.35";
+                    el.setCssStyles({ opacity: "0.35" });
                 }
             });
         }
@@ -4684,7 +4661,7 @@ export class PdfComposeView extends ItemView {
                     if (!id || this.pendingEraseTextBlockIds.has(id)) return;
                     if (samplePoints.some(p => this.elementHitTestTextBlock(el, p, threshold))) {
                         this.pendingEraseTextBlockIds.add(id);
-                        el.style.opacity = "0.35";
+                        el.setCssStyles({ opacity: "0.35" });
                     }
                 });
             }
@@ -4815,9 +4792,9 @@ export class PdfComposeView extends ItemView {
         const originalStyles = new Map<HTMLElement, { zIndex: string; overflow: string }>();
         for (const el of elementsToAdjust) {
             originalStyles.set(el, { zIndex: el.style.zIndex, overflow: el.style.overflow });
-            el.style.overflow = "visible";
+            el.setCssStyles({ overflow: "visible" });
         }
-        pageEl.style.zIndex = "500";
+        pageEl.setCssStyles({ zIndex: "500" });
 
         const svgOriginalOverflow = new Map<SVGSVGElement, string>();
         const annotSvg = this.ui.annotationLayers.get(pageId);
@@ -4825,7 +4802,7 @@ export class PdfComposeView extends ItemView {
         for (const svg of [annotSvg, highlightSvg]) {
             if (!svg) continue;
             svgOriginalOverflow.set(svg, svg.style.overflow);
-            svg.style.overflow = "visible";
+            svg.setCssStyles({ overflow: "visible" });
         }
 
         this.elevatedDragPageId = pageId;
@@ -4838,13 +4815,12 @@ export class PdfComposeView extends ItemView {
 
         if (this.elevatedDragOriginalStyles) {
             for (const [el, style] of this.elevatedDragOriginalStyles) {
-                el.style.zIndex = style.zIndex;
-                el.style.overflow = style.overflow;
+                el.setCssStyles({ zIndex: style.zIndex, overflow: style.overflow });
             }
         }
         if (this.elevatedDragOriginalSvgStyles) {
             for (const [svg, overflow] of this.elevatedDragOriginalSvgStyles) {
-                svg.style.overflow = overflow;
+                svg.setCssStyles({ overflow: overflow });
             }
         }
 
@@ -6116,7 +6092,7 @@ export class PdfComposeView extends ItemView {
         // --- Handle ausblenden, um optisches Zurückbleiben zu vermeiden ---
         const handle = evt.currentTarget as SVGCircleElement;
         if (handle) {
-            handle.style.display = "none";
+            handle.setCssStyles({ display: "none" });
         }
         // ---
 
@@ -6168,7 +6144,7 @@ export class PdfComposeView extends ItemView {
                 try { svg.releasePointerCapture(mode.pointerId); } catch { /* ignore */ }
             }
         }
-        if (handle) handle.style.display = "";
+        if (handle) handle.setCssStyles({ display: "" });
 
         if (mode?.originalPoint) {
             const objects = this.getPageAnnotations(mode.pageId);
@@ -6973,7 +6949,7 @@ export class PdfComposeView extends ItemView {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         g.setAttribute("data-label-owner", objId);
         g.setAttribute("data-shape-label", "1");
-        g.style.pointerEvents = "none";
+        g.setCssStyles({ pointerEvents: "none" });
         let transform = `translate(${centerX} ${centerY})`;
         if (rotationDeg) transform += ` rotate(${rotationDeg})`;
         g.setAttribute("transform", transform);
@@ -7037,7 +7013,7 @@ export class PdfComposeView extends ItemView {
         g.setAttribute("data-label-owner", obj.id);
         g.setAttribute("data-line-label", "1");
         g.setAttribute("transform", `translate(${midPoint.x} ${midPoint.y}) rotate(${angleDeg})`);
-        g.style.pointerEvents = "none";
+        g.setCssStyles({ pointerEvents: "none" });
 
         if (label.mode === "box") {
             const boxPadding = fontSize * 0.3;
@@ -8151,7 +8127,7 @@ export class PdfComposeView extends ItemView {
      */
     private applyZoom(liveOnly: boolean = false): void {
         if (!this.ui?.pagesContentEl) return;
-        (this.ui.pagesContentEl.style as any).zoom = this.zoomLevel.toString();
+        this.ui.pagesContentEl.setCssStyles({ zoom: this.zoomLevel.toString() } as any);
         this.ui.updateZoomDisplay(this.zoomLevel);
         if (liveOnly) return;
         this.scheduleRerasterForCurrentZoom();
@@ -8298,8 +8274,7 @@ export class PdfComposeView extends ItemView {
                 return;
             }
 
-            canvas.style.width = `${logicalSize.width}px`;
-            canvas.style.height = `${logicalSize.height}px`;
+            canvas.setCssStyles({ width: `${logicalSize.width}px`, height: `${logicalSize.height}px` });
             this.pageRasterMultiplier.set(page.id, multiplier);
         } finally {
             this.rerasteringPageIds.delete(page.id);
@@ -9248,7 +9223,7 @@ export class PdfComposeView extends ItemView {
 
         if (!query.trim()) {
             this.ui.searchResultsEl.empty();
-            this.ui.searchResultsEl.style.display = "none";
+            this.ui.searchResultsEl.setCssStyles({ display: "none" });
             this.foundPageIds.clear();
             this.ui.updateSidebarHighlights(this.foundPageIds);
             return;
@@ -10083,13 +10058,7 @@ export class PdfComposeView extends ItemView {
         // Neue SVG-Ebene
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svg.classList.add("pdfcompose-ocr-debug");
-        svg.style.position = "absolute";
-        svg.style.top = "0";
-        svg.style.left = "0";
-        svg.style.width = "100%";
-        svg.style.height = "100%";
-        svg.style.pointerEvents = "none";
-        svg.style.zIndex = "50";
+        svg.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none", zIndex: "50" });
 
         // viewBox aus der Seite ermitteln (aus der annotationLayer)
         const annotSvg = this.ui.annotationLayers.get(pageId);
@@ -10191,13 +10160,7 @@ export class PdfComposeView extends ItemView {
         const vb = annotSvg.getAttribute("viewBox");
         if (vb) svg.setAttribute("viewBox", vb);
         svg.classList.add("pdfcompose-bezier-debug");
-        svg.style.position = "absolute";
-        svg.style.top = "0";
-        svg.style.left = "0";
-        svg.style.width = "100%";
-        svg.style.height = "100%";
-        svg.style.pointerEvents = "none";
-        svg.style.zIndex = "55";
+        svg.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none", zIndex: "55" });
         wrapper.appendChild(svg);
         this.bezierDebugLayers.set(pageId, svg);
 

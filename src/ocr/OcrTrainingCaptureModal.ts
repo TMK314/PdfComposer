@@ -220,14 +220,16 @@ export class OcrTrainingCaptureModal extends Modal {
         });
 
         const selectContainer = contentEl.createDiv();
-        selectContainer.style.marginBottom = "10px";
-        selectContainer.style.display = "flex";
-        selectContainer.style.alignItems = "center";
-        selectContainer.style.gap = "8px";
+        selectContainer.setCssStyles({
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+        });
 
         selectContainer.createEl("label", { text: "Word list:" });
         const selectEl = selectContainer.createEl("select");
-        selectEl.style.flexGrow = "1";
+        selectEl.setCssStyles({ flexGrow: "1" });
 
         for (const list of Object.values(WORD_LISTS)) {
             selectEl.createEl("option", { text: list.name, value: list.id });
@@ -249,7 +251,7 @@ export class OcrTrainingCaptureModal extends Modal {
         loadSelectedList();
 
         const startBtn = contentEl.createEl("button", { text: "Start recording", cls: "mod-cta" });
-        startBtn.style.marginTop = "10px";
+        startBtn.setCssStyles({ marginTop: "10px" });
         startBtn.addEventListener("click", () => {
             const words = textarea.value.split("\n").map(w => w.trim()).filter(w => w.length > 0);
             if (words.length === 0) {
@@ -269,17 +271,21 @@ export class OcrTrainingCaptureModal extends Modal {
 
         this.progressEl = contentEl.createEl("div");
         this.promptEl = contentEl.createEl("div");
-        this.promptEl.style.fontSize = "2em";
-        this.promptEl.style.fontWeight = "bold";
-        this.promptEl.style.textAlign = "center";
-        this.promptEl.style.margin = "8px 0";
+        this.promptEl.setCssStyles({
+            fontSize: "2em",
+            fontWeight: "bold",
+            textAlign: "center",
+            margin: "8px 0",
+        });
 
         this.svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
         this.svgEl.setAttribute("viewBox", `0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`);
         this.svgEl.setAttribute("width", "100%");
-        this.svgEl.style.background = "var(--background-secondary)";
-        this.svgEl.style.border = "1px solid var(--background-modifier-border)";
-        this.svgEl.style.touchAction = "none";
+        this.svgEl.setCssStyles({
+            background: "var(--background-secondary)",
+            border: "1px solid var(--background-modifier-border)",
+            touchAction: "none",
+        });
         contentEl.appendChild(this.svgEl);
 
         const baseline = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -297,10 +303,12 @@ export class OcrTrainingCaptureModal extends Modal {
         this.svgEl.addEventListener("pointercancel", (e) => this.onPointerUp(e));
 
         const btnRow = contentEl.createDiv();
-        btnRow.style.display = "flex";
-        btnRow.style.gap = "6px";
-        btnRow.style.marginTop = "8px";
-        btnRow.style.flexWrap = "wrap";
+        btnRow.setCssStyles({
+            display: "flex",
+            gap: "6px",
+            marginTop: "8px",
+            flexWrap: "wrap",
+        });
 
         this.addButton(btnRow, "◀ Back", () => this.goTo(this.currentIndex - 1));
         this.addButton(btnRow, "Undo stroke", () => this.undoStroke());
@@ -309,9 +317,11 @@ export class OcrTrainingCaptureModal extends Modal {
         this.addButton(btnRow, "Done & export", () => void this.exportSamples());
 
         this.coverageEl = contentEl.createEl("pre");
-        this.coverageEl.style.fontSize = "0.75em";
-        this.coverageEl.style.maxHeight = "120px";
-        this.coverageEl.style.overflowY = "auto";
+        this.coverageEl.setCssStyles({
+            fontSize: "0.75em",
+            maxHeight: "120px",
+            overflowY: "auto",
+        });
 
         this.loadWordIntoCanvas(this.currentIndex);
     }

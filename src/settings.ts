@@ -178,7 +178,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	}
 
 	private displayDarkModeSection(containerEl: HTMLElement): void {
-		containerEl.createEl('h2', { text: 'Dark mode' });
+		new Setting(containerEl).setName('Dark mode').setHeading();
 		containerEl.createEl('p', {
 			cls: 'setting-item-description',
 			text:
@@ -286,7 +286,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	}
 
 	private displayMobileSection(containerEl: HTMLElement): void {
-		containerEl.createEl('h2', { text: 'Mobile / Touch' });
+		new Setting(containerEl).setName('Mobile / Touch').setHeading();
 
 		new Setting(containerEl)
 			.setName('Only stylus draws')
@@ -309,7 +309,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	}
 
 	private displayNewFileSection(containerEl: HTMLElement): void {
-		containerEl.createEl('h2', { text: 'New PDF Compose file' });
+		new Setting(containerEl).setName('New PDF Compose file').setHeading();
 		containerEl.createEl('p', {
 			cls: 'setting-item-description',
 			text:
@@ -362,7 +362,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	}
 
 	private displayPageHeadingsSection(containerEl: HTMLElement): void {
-		containerEl.createEl('h2', { text: 'Automatic page headings' });
+		new Setting(containerEl).setName('Automatic page headings').setHeading();
 		containerEl.createEl('p', {
 			cls: 'setting-item-description',
 			text:
@@ -401,7 +401,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	}
 
 	private displaySearchSection(containerEl: HTMLElement): void {
-		containerEl.createEl('h2', { text: 'Search' });
+		new Setting(containerEl).setName('Search').setHeading();
 		containerEl.createEl('p', {
 			cls: 'setting-item-description',
 			text:
@@ -472,7 +472,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	private async displayOcrSection(containerEl: HTMLElement): Promise<void> {
 		await this.ensureDefaultPaths();
 
-		containerEl.createEl('h2', { text: 'OCR (handwriting recognition)' });
+		new Setting(containerEl).setName('OCR (handwriting recognition)').setHeading();
 		containerEl.createEl('p', {
 			cls: 'setting-item-description',
 			text:
@@ -544,7 +544,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		containerEl.createEl('h3', { text: 'Model & resources' });
+		new Setting(containerEl).setName('Model & resources').setHeading();
 
 		new Setting(containerEl)
 			.setName('Model file (.tflite)')
@@ -582,7 +582,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		containerEl.createEl('h3', { text: 'Model download' });
+		new Setting(containerEl).setName('Model download').setHeading();
 		containerEl.createEl('p', {
 			cls: 'setting-item-description',
 			text:
@@ -630,7 +630,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 
 		this.displayLicenseSection(containerEl);
 
-		containerEl.createEl('h3', { text: 'Fine-tuning' });
+		new Setting(containerEl).setName('Fine-tuning').setHeading();
 
 		new Setting(containerEl)
 			.setName('Minimum confidence')
@@ -709,7 +709,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 	 * downloaded model weights, not to this plugin itself.
 	 */
 	private displayLicenseSection(containerEl: HTMLElement): void {
-		containerEl.createEl('h3', { text: 'Model license' });
+		new Setting(containerEl).setName('Model license').setHeading();
 
 		const p1 = containerEl.createEl('p', { cls: 'setting-item-description' });
 		p1.appendText(

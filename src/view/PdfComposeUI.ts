@@ -215,15 +215,14 @@ export class PdfComposeUI {
     public buildLayout(): void {
         this.container.empty();
         this.container.addClass("pdfcompose-view-container");
-        this.container.style.position = "relative";
+        this.container.setCssStyles({ position: "relative" });
 
         // Flex-Container (Sidebar + Seitenbereich)
         const flexContainer = this.container.createDiv({ cls: "pdfcompose-flex" });
 
         // Seitenleiste
         this.sidebarEl = flexContainer.createDiv({ cls: "pdfcompose-sidebar" });
-        this.sidebarEl.style.width = this.sidebarWidth + "px";
-        this.sidebarEl.style.flexShrink = "0";
+        this.sidebarEl.setCssStyles({ width: this.sidebarWidth + "px", flexShrink: "0" });
 
         // Header
         this.sidebarHeaderEl = this.sidebarEl.createDiv({ cls: "pdfcompose-sidebar-header" });
@@ -325,7 +324,7 @@ export class PdfComposeUI {
             }
             if (!this.searchInputEl.value.trim()) {
                 this.searchResultsEl.empty();
-                this.searchResultsEl.style.display = "none";
+                this.searchResultsEl.setCssStyles({ display: "none" });
                 this.view.clearSearchHighlights();
             }
         });
@@ -388,7 +387,7 @@ export class PdfComposeUI {
         });
 
         this.searchResultsEl = this.searchTabContent.createDiv({ cls: "pdfcompose-search-results" });
-        this.searchResultsEl.style.display = "none";
+        this.searchResultsEl.setCssStyles({ display: "none" });
 
         // Standard-Tab aktivieren
         this.switchTab("pages");
@@ -496,12 +495,12 @@ export class PdfComposeUI {
         this.isSidebarCollapsed = forceCollapsed ?? !this.isSidebarCollapsed;
         if (this.isSidebarCollapsed) {
             this.sidebarEl.addClass("pdfcompose-sidebar-collapsed");
-            this.sidebarEl.style.width = "36px";
-            this.sidebarResizeHandle.style.display = "none";
+            this.sidebarEl.setCssStyles({ width: "36px" });
+            this.sidebarResizeHandle.setCssStyles({ display: "none" });
         } else {
             this.sidebarEl.removeClass("pdfcompose-sidebar-collapsed");
-            this.sidebarEl.style.width = this.sidebarWidth + "px";
-            this.sidebarResizeHandle.style.display = "";
+            this.sidebarEl.setCssStyles({ width: this.sidebarWidth + "px" });
+            this.sidebarResizeHandle.setCssStyles({ display: "" });
         }
         this.container.dispatchEvent(new Event("resize"));
     }
@@ -559,7 +558,7 @@ export class PdfComposeUI {
             const newWidth = Math.max(minWidth, startWidth + (ev.clientX - startX));
             this.sidebarWidth = newWidth;
             if (!this.isSidebarCollapsed) {
-                this.sidebarEl.style.width = newWidth + "px";
+                this.sidebarEl.setCssStyles({ width: newWidth + "px" });
             }
         };
 
@@ -598,9 +597,9 @@ export class PdfComposeUI {
         };
         for (const [key, pane] of Object.entries(panes)) {
             if (key === tab) {
-                pane.style.display = "";
+                pane.setCssStyles({ display: "" });
             } else {
-                pane.style.display = "none";
+                pane.setCssStyles({ display: "none" });
             }
         }
 
@@ -713,8 +712,7 @@ export class PdfComposeUI {
     public updatePlaceholderSize(pageWrapperEl: HTMLElement, width: number, height: number): void {
         const sk = pageWrapperEl.querySelector<HTMLElement>(".pdfcompose-page-skeleton");
         if (!sk) return;
-        sk.style.width = `${width}px`;
-        sk.style.height = `${height}px`;
+        sk.setCssStyles({ width: `${width}px`, height: `${height}px` });
     }
 
     /**
@@ -948,9 +946,9 @@ export class PdfComposeUI {
         this.pointerDragActive = true;
         this.draggingPageId = pageId;
         // Erst jetzt touch-action unterbinden und Pointer-Capture setzen.
-        this.sidebarContentEl.style.touchAction = "none";
+        this.sidebarContentEl.setCssStyles({ touchAction: "none" });
         this.sidebarListEl.querySelectorAll<HTMLElement>(".pdfcompose-sidebar-item")
-            .forEach(el => { el.style.touchAction = "none"; });
+            .forEach(el => { el.setCssStyles({ touchAction: "none" }); });
         try { item.setPointerCapture(pointerId); } catch { /* ignore */ }
         for (const id of this.currentDragSourceIds()) {
             this.sidebarListEl.querySelector(`[data-page-id="${id}"]`)
@@ -1054,9 +1052,9 @@ export class PdfComposeUI {
             try { item.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
         }
 
-        this.sidebarContentEl.style.touchAction = "";
+        this.sidebarContentEl.setCssStyles({ touchAction: "" });
         this.sidebarListEl.querySelectorAll<HTMLElement>(".pdfcompose-sidebar-item")
-            .forEach(el => { el.style.touchAction = ""; });
+            .forEach(el => { el.setCssStyles({ touchAction: "" }); });
         for (const id of sourceIds) {
             this.sidebarListEl.querySelector(`[data-page-id="${id}"]`)
                 ?.removeClass("pdfcompose-sidebar-dragging");
@@ -1357,7 +1355,7 @@ export class PdfComposeUI {
         this.sidebarListEl.empty();
         this.sourcesListEl.empty();
         this.searchResultsEl.empty();
-        this.searchResultsEl.style.display = "none";
+        this.searchResultsEl.setCssStyles({ display: "none" });
         this.searchInputEl.value = "";
     }
 
@@ -1373,10 +1371,10 @@ export class PdfComposeUI {
         this.searchResultsEl.empty();
         if (results.length === 0) {
             this.searchResultsEl.createDiv({ text: "No matches found." });
-            this.searchResultsEl.style.display = "block";
+            this.searchResultsEl.setCssStyles({ display: "block" });
             return;
         }
-        this.searchResultsEl.style.display = "block";
+        this.searchResultsEl.setCssStyles({ display: "block" });
 
         let currentCategory: SearchResultCategory | null = null;
         let currentOcrDistance: number | null = null;
@@ -1412,8 +1410,7 @@ export class PdfComposeUI {
                 // in view.renderSearchPreview().
                 const cssW = 200;
                 const cssH = 120;
-                preview.style.width = cssW + "px";
-                preview.style.height = cssH + "px";
+                preview.setCssStyles({ width: cssW + "px", height: cssH + "px" });
                 preview.width = cssW * 2;
                 preview.height = cssH * 2;
 
@@ -1468,7 +1465,7 @@ export class PdfComposeUI {
 
     public clearSearchResults(): void {
         this.searchResultsEl.empty();
-        this.searchResultsEl.style.display = "none";
+        this.searchResultsEl.setCssStyles({ display: "none" });
     }
 
     // ========== SIDEBAR-HIGHLIGHTS (für Suche) ==========
@@ -1578,9 +1575,7 @@ export class PdfComposeUI {
             this.groupButtons.set(group.id, mainBtn);
 
             const dropdown = container.createDiv({ cls: "pdfcompose-dropdown" });
-            dropdown.style.display = "none";
-            dropdown.style.left = "50%";
-            dropdown.style.transform = "translateX(-50%)";
+            dropdown.setCssStyles({ display: "none", left: "50%", transform: "translateX(-50%)" });
             for (const tool of group.tools) {
                 const meta = TOOL_METADATA[tool] || { label: tool, icon: 'help-circle' };
                 const btn = dropdown.createEl("button", { cls: "pdfcompose-tool-btn" });
@@ -1589,7 +1584,7 @@ export class PdfComposeUI {
                 btn.setAttribute("title", meta.label);
                 if (group.id === "pen") {
                     const preset = DEFAULT_PEN_PRESETS.find(p => p.id === tool);
-                    if (preset) btn.style.color = splitHexAlpha(preset.color).rgb;
+                    if (preset) btn.setCssStyles({ color: splitHexAlpha(preset.color).rgb });
                 }
                 btn.addEventListener("click", (e) => {
                     e.stopPropagation();
@@ -1628,9 +1623,9 @@ export class PdfComposeUI {
             btn.setAttribute("title", meta.label);
             if (groupId === "pen") {
                 const preset = DEFAULT_PEN_PRESETS.find(p => p.id === tool);
-                btn.style.color = preset ? splitHexAlpha(preset.color).rgb : "";
+                btn.setCssStyles({ color: preset ? splitHexAlpha(preset.color).rgb : "" });
             } else {
-                btn.style.color = "";
+                btn.setCssStyles({ color: "" });
             }
         }
     }
@@ -1642,7 +1637,7 @@ export class PdfComposeUI {
 
         for (const [groupId, dropdown] of this.groupDropdowns.entries()) {
             const toolBtn = dropdown.querySelector<HTMLElement>(`[data-tool="${tool}"]`);
-            if (toolBtn) toolBtn.style.color = splitHexAlpha(color).rgb;
+            if (toolBtn) toolBtn.setCssStyles({ color: splitHexAlpha(color).rgb });
 
             const state = this.groupStates.get(groupId);
             if (state?.currentTool === tool) {
@@ -1660,7 +1655,7 @@ export class PdfComposeUI {
             state.isOpen = true;
             const dropdown = this.groupDropdowns.get(groupId);
             if (dropdown) {
-                dropdown.style.display = "block";  // statt "" für Klarheit
+                dropdown.setCssStyles({ display: "block" });
             }
             const tool = state.currentTool;
             if (this.onToolSelect) this.onToolSelect(tool);
@@ -1680,7 +1675,7 @@ export class PdfComposeUI {
         for (const [groupId, state] of this.groupStates) {
             state.isOpen = false;
             const dropdown = this.groupDropdowns.get(groupId);
-            if (dropdown) dropdown.style.display = "none";
+            if (dropdown) dropdown.setCssStyles({ display: "none" });
         }
     }
 
@@ -1719,22 +1714,22 @@ export class PdfComposeUI {
         const isSelectionTool = currentTool === "select-rect" || currentTool === "select-lasso";
 
         for (const svg of this.annotationLayers.values()) {
-            svg.style.pointerEvents = drawable ? "auto" : "none";
-            if (isSelectionTool) svg.style.cursor = "default";
-            else if (currentTool === "eraser") svg.style.cursor = "cell";
-            else if (drawable) svg.style.cursor = "crosshair";
-            else svg.style.cursor = "default";
+            svg.setCssStyles({ pointerEvents: drawable ? "auto" : "none" });
+            if (isSelectionTool) svg.setCssStyles({ cursor: "default" });
+            else if (currentTool === "eraser") svg.setCssStyles({ cursor: "cell" });
+            else if (drawable) svg.setCssStyles({ cursor: "crosshair" });
+            else svg.setCssStyles({ cursor: "default" });
 
             const selectionHandles = svg.querySelector(".pdfcompose-selection-handles") as SVGGElement | null;
             if (selectionHandles) {
-                selectionHandles.style.pointerEvents = "none";
+                selectionHandles.setCssStyles({ pointerEvents: "none" });
                 // WICHTIG: auch .pdfcompose-point-handle explizit einschalten.
                 selectionHandles
                     .querySelectorAll<SVGElement>(
                         ".pdfcompose-scale-handle, .pdfcompose-rotate-handle, .pdfcompose-point-handle"
                     )
                     .forEach(handle => {
-                        handle.style.pointerEvents = "all";
+                        handle.setCssStyles({ pointerEvents: "all" });
                     });
             }
         }
@@ -1816,8 +1811,7 @@ export class PdfComposeUI {
     public updatePasteButton(visible: boolean): void {
         if (!this.pasteBtnEl) return;
 
-        this.pasteBtnEl.style.display =
-            visible ? "" : "none";
+        this.pasteBtnEl.setCssStyles({ display: visible ? "" : "none" });
     }
 
     public buildActionPanel(handlers: {
@@ -1831,33 +1825,30 @@ export class PdfComposeUI {
 
         this.copyBtn = panel.createEl("button", { cls: "pdfcompose-tool-btn", text: "Copy" });
         this.copyBtn.addEventListener("click", handlers.onCopy);
-        this.copyBtn.style.display = "none";
+        this.copyBtn.setCssStyles({ display: "none" });
 
         this.cutBtn = panel.createEl("button", { cls: "pdfcompose-tool-btn", text: "Cut" });
         this.cutBtn.addEventListener("click", handlers.onCut);
-        this.cutBtn.style.display = "none";
+        this.cutBtn.setCssStyles({ display: "none" });
 
         this.deleteBtn = panel.createEl("button", { cls: "pdfcompose-tool-btn", text: "Delete" });
         this.deleteBtn.addEventListener("click", handlers.onDelete);
-        this.deleteBtn.style.display = "none";
+        this.deleteBtn.setCssStyles({ display: "none" });
 
         this.pasteBtn = panel.createEl("button", { cls: "pdfcompose-tool-btn", text: "Paste" });
         this.pasteBtn.addEventListener("click", handlers.onPaste);
-        this.pasteBtn.style.display = "none";
+        this.pasteBtn.setCssStyles({ display: "none" });
     }
 
     public buildMoreOptionsMenu(): HTMLElement {
         const wrapper = this.bottomRightStackEl.createDiv({ cls: "pdfcompose-more-options-wrapper" });
-        wrapper.style.position = "relative";
-        wrapper.style.display = "flex";
-        wrapper.style.justifyContent = "flex-end";
-        wrapper.style.alignSelf = "flex-end";
+        wrapper.setCssStyles({ position: "relative", display: "flex", justifyContent: "flex-end", alignSelf: "flex-end" });
 
         this.moreOptionsBtn = wrapper.createEl("button", { cls: "pdfcompose-tool-btn pdfcompose-more-options-btn", text: "⋮" });
         this.moreOptionsBtn.setAttribute("title", "More options (save, color mode, scroll direction, …)");
         this.moreOptionsBtn.setAttribute("aria-label", "More options");
         const btnHeight = Platform.isMobile ? 48 : 40;
-        Object.assign(this.moreOptionsBtn.style, {
+        this.moreOptionsBtn.setCssStyles({
             minWidth: `${Math.round(btnHeight * 1.5)}px`,
             height: `${btnHeight}px`,
             padding: "0 16px",
@@ -1870,20 +1861,7 @@ export class PdfComposeUI {
         });
 
         this.moreOptionsPanel = wrapper.createDiv({ cls: "pdfcompose-more-options-panel" });
-        this.moreOptionsPanel.style.display = "none";
-        this.moreOptionsPanel.style.flexDirection = "column";
-        this.moreOptionsPanel.style.gap = "6px";
-        this.moreOptionsPanel.style.position = "absolute";
-        this.moreOptionsPanel.style.bottom = "100%";
-        this.moreOptionsPanel.style.right = "0";
-        this.moreOptionsPanel.style.marginBottom = "6px";
-        this.moreOptionsPanel.style.padding = "8px";
-        this.moreOptionsPanel.style.background = "var(--background-primary)";
-        this.moreOptionsPanel.style.border = "1px solid var(--background-modifier-border)";
-        this.moreOptionsPanel.style.borderRadius = "6px";
-        this.moreOptionsPanel.style.boxShadow = "var(--shadow-s)";
-        this.moreOptionsPanel.style.whiteSpace = "nowrap";
-        this.moreOptionsPanel.style.zIndex = "50";
+        this.moreOptionsPanel.setCssStyles({ display: "none", flexDirection: "column", gap: "6px", position: "absolute", bottom: "100%", right: "0", marginBottom: "6px", padding: "8px", background: "var(--background-primary)", border: "1px solid var(--background-modifier-border)", borderRadius: "6px", boxShadow: "var(--shadow-s)", whiteSpace: "nowrap", zIndex: "50" });
         // Klicks INNERHALB des Panels dürfen es nicht sofort wieder schließen.
         this.moreOptionsPanel.addEventListener("click", (e) => e.stopPropagation());
 
@@ -1896,13 +1874,13 @@ export class PdfComposeUI {
 
     public toggleMoreOptions(forceOpen?: boolean): void {
         this.moreOptionsOpen = forceOpen ?? !this.moreOptionsOpen;
-        this.moreOptionsPanel.style.display = this.moreOptionsOpen ? "flex" : "none";
+        this.moreOptionsPanel.setCssStyles({ display: this.moreOptionsOpen ? "flex" : "none" });
     }
 
     public closeMoreOptions(): void {
         if (!this.moreOptionsOpen) return;
         this.moreOptionsOpen = false;
-        this.moreOptionsPanel.style.display = "none";
+        this.moreOptionsPanel.setCssStyles({ display: "none" });
     }
 
     public buildSaveButton(container: HTMLElement, onSave: () => void): void {
@@ -2006,10 +1984,10 @@ export class PdfComposeUI {
     }
 
     public updateActionButtons(hasSelection: boolean, canPaste: boolean): void {
-        if (this.copyBtn) this.copyBtn.style.display = hasSelection ? "" : "none";
-        if (this.cutBtn) this.cutBtn.style.display = hasSelection ? "" : "none";
-        if (this.deleteBtn) this.deleteBtn.style.display = hasSelection ? "" : "none";
-        if (this.pasteBtn) this.pasteBtn.style.display = canPaste ? "" : "none";
+        if (this.copyBtn) this.copyBtn.setCssStyles({ display: hasSelection ? "" : "none" });
+        if (this.cutBtn) this.cutBtn.setCssStyles({ display: hasSelection ? "" : "none" });
+        if (this.deleteBtn) this.deleteBtn.setCssStyles({ display: hasSelection ? "" : "none" });
+        if (this.pasteBtn) this.pasteBtn.setCssStyles({ display: canPaste ? "" : "none" });
     }
 
     // ========== EIGENSCHAFTEN-PANEL ==========
@@ -2281,7 +2259,7 @@ export class PdfComposeUI {
                 this.panelControls.pressureToggle = pressureToggle;
 
                 const detailsRow = panel.createDiv({ cls: "pdfcompose-panel-row" });
-                detailsRow.style.display = style.pressure.enabled ? "" : "none";
+                detailsRow.setCssStyles({ display: style.pressure.enabled ? "" : "none" });
                 this.panelControls.pressureDetailsRow = detailsRow;
 
                 this.createIconLabel(detailsRow, "Min. Factor:", "percent");
@@ -2422,7 +2400,7 @@ export class PdfComposeUI {
             c.pressureToggle.checked = style.pressure.enabled;
         }
         if (c.pressureDetailsRow) {
-            c.pressureDetailsRow.style.display = style.pressure.enabled ? "" : "none";
+            c.pressureDetailsRow.setCssStyles({ display: style.pressure.enabled ? "" : "none" });
         }
         if (c.pressureMinFactorInput) {
             c.pressureMinFactorInput.value = style.pressure.minFactor.toString();
@@ -2487,7 +2465,7 @@ export class PdfComposeUI {
         const NS = "http://www.w3.org/2000/svg";
         const group = document.createElementNS(NS, "g");
         group.classList.add("pdfcompose-selection-handles");
-        group.style.pointerEvents = "none";
+        group.setCssStyles({ pointerEvents: "none" });
         svg.appendChild(group);
         this.selectionHandlesGroup = group;
 
@@ -2495,7 +2473,7 @@ export class PdfComposeUI {
         box.setAttribute("points", frame.corners.map(c => `${c.x},${c.y}`).join(" "));
         box.setAttribute("fill", "none");
         box.classList.add("pdfcompose-selection-box");
-        box.style.pointerEvents = "none";
+        box.setCssStyles({ pointerEvents: "none" });
         group.appendChild(box);
 
         // Skaliergriffe (NW, NE, SE, SW – Index 0..3), mit der Form mitgedreht
@@ -2508,7 +2486,7 @@ export class PdfComposeUI {
             handle.setAttribute("height", size.toString());
             if (frame.rotation) handle.setAttribute("transform", `rotate(${frame.rotation} ${corner.x} ${corner.y})`);
             handle.classList.add("pdfcompose-scale-handle");
-            handle.style.pointerEvents = "all";
+            handle.setCssStyles({ pointerEvents: "all" });
             handle.addEventListener("pointerdown", (e) => onHandleDrag(e, "scale-corner", svg, cornerIdx));
             group.appendChild(handle);
         });
@@ -2524,7 +2502,7 @@ export class PdfComposeUI {
         rotateHandle.setAttribute("cy", ((nw.y + ne.y) / 2 + upY * rotateDistance).toString());
         rotateHandle.setAttribute("r", "6");
         rotateHandle.classList.add("pdfcompose-rotate-handle");
-        rotateHandle.style.pointerEvents = "all";
+        rotateHandle.setCssStyles({ pointerEvents: "all" });
         rotateHandle.addEventListener("pointerdown", (e) => onHandleDrag(e, "rotate", svg));
         group.appendChild(rotateHandle);
     }
@@ -2548,12 +2526,7 @@ export class PdfComposeUI {
             handle.setAttribute("r", "5");
             const isBound = boundIndices.has(index);
             // Inline-Styles (nicht setAttribute) → gewinnen gegen CSS-Klassen.
-            handle.style.fill = isBound ? "#40c057" : "#ffffff";
-            handle.style.stroke = isBound ? "#2f9e44" : "#7c3aed";
-            handle.style.strokeWidth = "2";
-            handle.style.pointerEvents = "all";
-            handle.style.visibility = "visible";
-            handle.style.opacity = "1";
+            handle.setCssStyles({ fill: isBound ? "#40c057" : "#ffffff", stroke: isBound ? "#2f9e44" : "#7c3aed", strokeWidth: "2", pointerEvents: "all", visibility: "visible", opacity: "1" });
             handle.classList.add("pdfcompose-point-handle");
             if (isBound) {
                 handle.classList.add("pdfcompose-point-handle-bound");
@@ -2717,11 +2690,10 @@ export class PdfComposeUI {
         const placeholder = pageWrapperEl.createDiv({
             cls: "pdfcompose-page-body pdfcompose-page-body-placeholder",
         });
-        placeholder.style.pointerEvents = "none";
+        placeholder.setCssStyles({ pointerEvents: "none" });
 
         const skeleton = placeholder.createDiv({ cls: "pdfcompose-page-skeleton" });
-        skeleton.style.width = `${width}px`;
-        skeleton.style.height = `${height}px`;
+        skeleton.setCssStyles({ width: `${width}px`, height: `${height}px` });
         skeleton.setText("…");
 
         // Reserviert GENAU denselben Platz wie die Anmerkungsspalte im
@@ -2732,7 +2704,7 @@ export class PdfComposeUI {
             const annotStub = placeholder.createDiv({
                 cls: "pdfcompose-annotation-column pdfcompose-annotation-column-placeholder",
             });
-            annotStub.style.width = `${annotationColumnWidth}px`;
+            annotStub.setCssStyles({ width: `${annotationColumnWidth}px` });
         }
 
         return pageWrapperEl;
@@ -2756,18 +2728,17 @@ export class PdfComposeUI {
             const placeholder = pageWrapperEl.createDiv({
                 cls: "pdfcompose-page-body pdfcompose-page-body-placeholder",
             });
-            placeholder.style.pointerEvents = "none";
+            placeholder.setCssStyles({ pointerEvents: "none" });
 
             const skeleton = placeholder.createDiv({ cls: "pdfcompose-page-skeleton" });
-            skeleton.style.width = `${width}px`;
-            skeleton.style.height = `${height}px`;
+            skeleton.setCssStyles({ width: `${width}px`, height: `${height}px` });
             skeleton.setText("…");
 
             if (annotationColumnWidth > 0) {
                 const annotStub = placeholder.createDiv({
                     cls: "pdfcompose-annotation-column pdfcompose-annotation-column-placeholder",
                 });
-                annotStub.style.width = `${annotationColumnWidth}px`;
+                annotStub.setCssStyles({ width: `${annotationColumnWidth}px` });
             }
         }
     }
@@ -2779,8 +2750,7 @@ export class PdfComposeUI {
     public renderBlankPage(page: BlankPageDefinition, container: HTMLElement): void {
         const size = typeof page.size === "object" ? page.size : PAGE_SIZES[page.size ?? "A4"];
         const blankEl = container.createDiv({ cls: "pdfcompose-blank-page" });
-        blankEl.style.width = `${size.width}px`;
-        blankEl.style.height = `${size.height}px`;
+        blankEl.setCssStyles({ width: `${size.width}px`, height: `${size.height}px` });
     }
 
     public renderPdfPageContainer(pageId: string, container: HTMLElement): {
@@ -2788,8 +2758,7 @@ export class PdfComposeUI {
         canvas: HTMLCanvasElement;
     } {
         const wrapper = container.createDiv({ cls: "pdfcompose-page-wrapper" });
-        wrapper.style.position = "relative";
-        wrapper.style.display = "inline-block";
+        wrapper.setCssStyles({ position: "relative", display: "inline-block" });
         const canvas = wrapper.createEl("canvas", { cls: "pdfcompose-page-canvas" });
         return { wrapper, canvas };
     }
@@ -2801,12 +2770,7 @@ export class PdfComposeUI {
         effectiveScale: number
     ): void {
         const overlay = wrapper.createDiv({ cls: "pdfcompose-overlay" });
-        overlay.style.position = "absolute";
-        overlay.style.top = "0";
-        overlay.style.left = "0";
-        overlay.style.pointerEvents = "none";
-        overlay.style.width = "100%";
-        overlay.style.height = "100%";
+        overlay.setCssStyles({ position: "absolute", top: "0", left: "0", pointerEvents: "none", width: "100%", height: "100%" });
         this.pageOverlays.set(pageId, overlay);
         overlay.dataset.viewportWidth = viewport.width.toString();
         overlay.dataset.viewportHeight = viewport.height.toString();
@@ -2843,12 +2807,7 @@ export class PdfComposeUI {
             if (tokens.length <= 1) {
                 const span = textLayer.createEl("span");
                 span.textContent = item.str;
-                span.style.left = baseLeft + "px";
-                span.style.top = top + "px";
-                span.style.fontSize = fontSize + "px";
-                span.style.lineHeight = "1";
-                span.style.whiteSpace = "pre";
-                span.style.transformOrigin = "0 0";
+                span.setCssStyles({ left: baseLeft + "px", top: top + "px", fontSize: fontSize + "px", lineHeight: "1", whiteSpace: "pre", transformOrigin: "0 0" });
                 pendingSingle.push({ span, targetWidth: item.width * scale });
                 continue;
             }
@@ -2857,11 +2816,7 @@ export class PdfComposeUI {
             for (const token of tokens) {
                 const span = textLayer.createEl("span");
                 span.textContent = token;
-                span.style.top = top + "px";
-                span.style.fontSize = fontSize + "px";
-                span.style.lineHeight = "1";
-                span.style.whiteSpace = "pre";
-                span.style.transformOrigin = "0 0";
+                span.setCssStyles({ top: top + "px", fontSize: fontSize + "px", lineHeight: "1", whiteSpace: "pre", transformOrigin: "0 0" });
                 spans.push(span);
             }
             pendingGroups.push({ spans, baseLeft, targetTotalWidth: item.width * scale });
@@ -2882,7 +2837,7 @@ export class PdfComposeUI {
                 const { span, targetWidth } = pendingSingle[i];
                 const actualWidth = singleWidths[i];
                 if (actualWidth > 0 && targetWidth > 0) {
-                    span.style.transform = `scaleX(${targetWidth / actualWidth})`;
+                    span.setCssStyles({ transform: `scaleX(${targetWidth / actualWidth})` });
                 }
             }
 
@@ -2901,9 +2856,9 @@ export class PdfComposeUI {
                     const span = spans[j];
                     const naturalWidth = widths[j];
                     const tokenTargetWidth = (naturalWidth / naturalTotal) * targetTotalWidth;
-                    span.style.left = cursor + "px";
+                    span.setCssStyles({ left: cursor + "px" });
                     if (naturalWidth > 0 && tokenTargetWidth > 0) {
-                        span.style.transform = `scaleX(${tokenTargetWidth / naturalWidth})`;
+                        span.setCssStyles({ transform: `scaleX(${tokenTargetWidth / naturalWidth})` });
                     }
                     cursor += tokenTargetWidth;
                 }
@@ -2930,10 +2885,7 @@ export class PdfComposeUI {
         for (const link of links) {
             if (link.width <= 0 || link.height <= 0) continue;
             const a = layer.createEl("a", { cls: "pdfcompose-pdf-link" });
-            a.style.left = (link.x * scale) + "px";
-            a.style.top = (link.y * scale) + "px";
-            a.style.width = (link.width * scale) + "px";
-            a.style.height = (link.height * scale) + "px";
+            a.setCssStyles({ left: (link.x * scale) + "px", top: (link.y * scale) + "px", width: (link.width * scale) + "px", height: (link.height * scale) + "px" });
 
             if (link.url) {
                 a.href = link.url;
@@ -2961,13 +2913,7 @@ export class PdfComposeUI {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
         svg.setAttribute("viewBox", `0 0 ${rawWidth} ${rawHeight}`);
         svg.classList.add("pdfcompose-highlight-layer");
-        svg.style.position = "absolute";
-        svg.style.top = "0";
-        svg.style.left = "0";
-        svg.style.width = "100%";
-        svg.style.height = "100%";
-        svg.style.pointerEvents = "none";
-        svg.style.zIndex = "1";
+        svg.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none", zIndex: "1" });
         wrapper.appendChild(svg);
         this.highlightLayers.set(pageId, svg);
         return svg;
@@ -2985,7 +2931,7 @@ export class PdfComposeUI {
     public setHighlightLayerBlendMode(pageId: string, invert: boolean): void {
         const svg = this.highlightLayers.get(pageId);
         if (!svg) return;
-        svg.style.mixBlendMode = invert ? "screen" : "multiply";
+        svg.setCssStyles({ mixBlendMode: invert ? "screen" : "multiply" });
     }
 
     /**
@@ -2998,7 +2944,7 @@ export class PdfComposeUI {
     public setConnectorLayerBlendMode(pageId: string, invert: boolean): void {
         const svg = this.connectorLayers.get(pageId);
         if (!svg) return;
-        svg.style.mixBlendMode = invert ? "screen" : "multiply";
+        svg.setCssStyles({ mixBlendMode: invert ? "screen" : "multiply" });
     }
 
     public pruneConnectors(pageId: string, validIds: Set<string>): void {
@@ -3057,13 +3003,7 @@ export class PdfComposeUI {
     public createConnectorLayer(pageId: string, wrapper: HTMLElement): SVGSVGElement {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
         svg.classList.add("pdfcompose-connector-layer");
-        svg.style.position = "absolute";
-        svg.style.top = "0";
-        svg.style.left = "0";
-        svg.style.width = "100%";
-        svg.style.height = "100%";
-        svg.style.pointerEvents = "none";
-        svg.style.zIndex = "2";
+        svg.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none", zIndex: "2" });
         wrapper.appendChild(svg);
         this.connectorLayers.set(pageId, svg);
         return svg;
@@ -3108,13 +3048,12 @@ export class PdfComposeUI {
     ): Promise<void> {
         const box = container.createDiv({ cls: "pdfcompose-pdfannot" });
         box.setAttribute("data-pdfannot-id", entry.id);
-        box.style.top = (entry.y * scale) + "px";
-        box.style.width = (entry.width * scale) + "px";
+        box.setCssStyles({ top: (entry.y * scale) + "px", width: (entry.width * scale) + "px" });
         box.style.setProperty("--pdfannot-color", displayColor);
 
         const editBar = box.createDiv({ cls: "pdfcompose-pdfannot-editbar" });
         const swatch = editBar.createSpan({ cls: "pdfcompose-pdfannot-swatch" });
-        swatch.style.backgroundColor = displayColor;
+        swatch.setCssStyles({ backgroundColor: displayColor });
         const editBtn = editBar.createEl("button", { text: "✎", cls: "pdfcompose-textblock-editbtn" });
         editBtn.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -3139,8 +3078,7 @@ export class PdfComposeUI {
 
         const zoomFactor = (entry.fontScale || 100) / 100;
         const inner = box.createDiv({ cls: "pdfcompose-textblock-inner" });
-        inner.style.width = ((entry.width * scale) / zoomFactor) + "px";
-        (inner.style as any).zoom = zoomFactor.toString();
+        inner.setCssStyles({ width: ((entry.width * scale) / zoomFactor) + "px", zoom: zoomFactor.toString() } as any);
         inner.toggleClass("pdfcompose-inverted-text", invert);
 
         const markdown = entry.markdown.trim() ? entry.markdown : "*(leer – auf ✎ klicken zum Bearbeiten)*";
@@ -3228,15 +3166,7 @@ export class PdfComposeUI {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
         svg.setAttribute("viewBox", `0 0 ${rawWidth} ${rawHeight}`);
         svg.classList.add("pdfcompose-annotation-layer");
-        svg.style.position = "absolute";
-        svg.style.top = "0";
-        svg.style.left = "0";
-        svg.style.width = "100%";
-        svg.style.height = "100%";
-        svg.style.pointerEvents = currentTool !== "none" ? "auto" : "none";
-        svg.style.cursor = currentTool === "eraser" ? "cell" : (currentTool !== "none" ? "crosshair" : "default");
-        svg.style.zIndex = "22";
-        svg.style.touchAction = "none";
+        svg.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: currentTool !== "none" ? "auto" : "none", cursor: currentTool === "eraser" ? "cell" : (currentTool !== "none" ? "crosshair" : "default"), zIndex: "22", touchAction: "none" });
 
         wrapper.appendChild(svg);
         this.annotationLayers.set(pageId, svg);
@@ -3268,11 +3198,7 @@ export class PdfComposeUI {
     public createTextBlockLayer(parent: HTMLElement, pageId: string): HTMLElement {
         const layer = parent.createDiv({ cls: "pdfcompose-textblock-layer" });
 
-        layer.style.position = "absolute";
-        layer.style.top = "0";
-        layer.style.left = "0";
-        layer.style.width = "100%";
-        layer.style.height = "100%";
+        layer.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%" });
 
         // Die Ebene liegt immer über PDF-Text, Such-Highlights und Annotationen
         // (auch über der Annotations-SVG, die z-index 22 hat - siehe
@@ -3281,8 +3207,7 @@ export class PdfComposeUI {
         // Zeichen-/Auswahl-/Text-Werkzeug aktiv ist (dann hat die SVG
         // pointer-events:auto und würde sonst alle Klicks abfangen).
         // Die Ebene selbst bleibt aber transparent für Pointer-Events.
-        layer.style.pointerEvents = "none";
-        layer.style.zIndex = "23";
+        layer.setCssStyles({ pointerEvents: "none", zIndex: "23" });
 
         this.textBlockLayers.set(pageId, layer);
         return layer;
@@ -3304,30 +3229,22 @@ export class PdfComposeUI {
         const block = container.createDiv({ cls: "pdfcompose-textblock" });
         block.setAttribute("data-textblock-id", entry.id);
 
-        block.style.position = "absolute";
-        block.style.left = (entry.x * scale) + "px";
-        block.style.top = (entry.y * scale) + "px";
-        block.style.width = (entry.width * scale) + "px";
+        block.setCssStyles({ position: "absolute", left: (entry.x * scale) + "px", top: (entry.y * scale) + "px", width: (entry.width * scale) + "px" });
 
-        block.style.pointerEvents = "auto";
-        block.style.zIndex = "21";
+        block.setCssStyles({ pointerEvents: "auto", zIndex: "21" });
 
         const editBar = block.createDiv({
             cls: "pdfcompose-textblock-editbar"
         });
 
-        editBar.style.pointerEvents = "auto";
-        editBar.style.position = "relative";
-        editBar.style.zIndex = "100";
+        editBar.setCssStyles({ pointerEvents: "auto", position: "relative", zIndex: "100" });
 
         const editBtn = editBar.createEl("button", {
             text: "✎ Bearbeiten",
             cls: "pdfcompose-textblock-editbtn"
         });
 
-        editBtn.style.pointerEvents = "auto";
-        editBtn.style.position = "relative";
-        editBtn.style.zIndex = "101";
+        editBtn.setCssStyles({ pointerEvents: "auto", position: "relative", zIndex: "101" });
 
         editBtn.addEventListener("pointerdown", (e) => {
             e.stopPropagation();
@@ -3357,8 +3274,7 @@ export class PdfComposeUI {
 
         const zoomFactor = (entry.fontScale || 100) / 100;
         const inner = block.createDiv({ cls: "pdfcompose-textblock-inner" });
-        inner.style.width = ((entry.width * scale) / zoomFactor) + "px";
-        (inner.style as any).zoom = zoomFactor.toString();
+        inner.setCssStyles({ width: ((entry.width * scale) / zoomFactor) + "px", zoom: zoomFactor.toString() } as any);
 
         inner.toggleClass("pdfcompose-textblock-dark-bg", darkBackground);
         inner.toggleClass("pdfcompose-textblock-light-bg", !darkBackground);
@@ -3427,10 +3343,7 @@ export class PdfComposeUI {
             if (viewportWidth === 0 || viewportHeight === 0) { this.highlightEls.push(null); continue; }
             const scale = parseFloat(overlay.dataset.scale || "1");
             const el = overlay.createDiv({ cls: "pdfcompose-highlight" });
-            el.style.left = (match.rect.x * scale) + "px";
-            el.style.top = (match.rect.y * scale) + "px";
-            el.style.width = (match.rect.width * scale) + "px";
-            el.style.height = (match.rect.height * scale) + "px";
+            el.setCssStyles({ left: (match.rect.x * scale) + "px", top: (match.rect.y * scale) + "px", width: (match.rect.width * scale) + "px", height: (match.rect.height * scale) + "px" });
             this.highlightEls.push(el);
         }
     }
@@ -3597,7 +3510,7 @@ export class AddPageModal extends Modal {
                 type: "text",
                 attr: { placeholder: "e.g. 1-3, 5, 8-10" },
             });
-            this.rangeInput.style.flex = "1";
+            this.rangeInput.setCssStyles({ flex: "1" });
             this.rangeInput.addEventListener("input", () => this.applyRangeInput());
             selRow.createEl("button", { text: "Select all" })
                 .addEventListener("click", () => this.selectAllPages());
@@ -3691,7 +3604,7 @@ export class AddPageModal extends Modal {
 
     private updatePositionTargetVisibility(): void {
         if (!this.positionSelect || !this.positionTargetRow) return;
-        this.positionTargetRow.style.display = this.positionSelect.value !== "end" ? "" : "none";
+        this.positionTargetRow.setCssStyles({ display: this.positionSelect.value !== "end" ? "" : "none" });
     }
 
     private getPosition(): InsertPosition {
@@ -3725,13 +3638,13 @@ export class AddPageModal extends Modal {
         this.pageCount = 0;
 
         if (value === AddPageModal.BLANK_KIND) {
-            this.sizeRow.style.display = "";
+            this.sizeRow.setCssStyles({ display: "" });
             await this.loadBlankTemplateThumbnails();
         } else if (value === AddPageModal.TEMPLATES_KIND) {
-            this.sizeRow.style.display = "none";
+            this.sizeRow.setCssStyles({ display: "none" });
             await this.loadTemplateFileThumbnails();
         } else {
-            this.sizeRow.style.display = "none";
+            this.sizeRow.setCssStyles({ display: "none" });
             await this.loadSourcePageThumbnails(value);
         }
 
@@ -3973,9 +3886,7 @@ export class TextDisplayModal extends Modal {
         contentEl.createEl("h2", { text: "Page Text" });
         const pre = contentEl.createEl("pre");
         pre.setText(this.text);
-        pre.style.whiteSpace = "pre-wrap";
-        pre.style.maxHeight = "400px";
-        pre.style.overflow = "auto";
+        pre.setCssStyles({ whiteSpace: "pre-wrap", maxHeight: "400px", overflow: "auto" });
         const copyBtn = contentEl.createEl("button", { text: "Copy to Clipboard" });
         copyBtn.addEventListener("click", async () => {
             await navigator.clipboard.writeText(this.text);
@@ -4057,7 +3968,7 @@ export class TextBlockEditModal extends Modal {
 
         textarea.value = this.markdown;
         textarea.rows = 12;
-        textarea.style.width = "100%";
+        textarea.setCssStyles({ width: "100%" });
 
         textarea.addEventListener("input", () => {
             this.markdown = textarea.value;
@@ -4213,7 +4124,7 @@ export class PdfAnnotationEditModal extends Modal {
         const textarea = contentEl.createEl("textarea");
         textarea.value = this.markdown;
         textarea.rows = 10;
-        textarea.style.width = "100%";
+        textarea.setCssStyles({ width: "100%" });
         textarea.addEventListener("input", () => { this.markdown = textarea.value; });
 
         const btnRow = contentEl.createDiv({ cls: "pdfcompose-panel-row" });
@@ -4553,7 +4464,7 @@ export class SourceDeleteModal extends Modal {
 
                 this.mode = "delete-pages";
 
-                templateRow.style.display = "none";
+                templateRow.setCssStyles({ display: "none" });
             }
         );
 
@@ -4583,7 +4494,7 @@ export class SourceDeleteModal extends Modal {
 
                 this.mode = "replace-pages";
 
-                templateRow.style.display = "";
+                templateRow.setCssStyles({ display: "" });
             }
         );
 
@@ -4592,7 +4503,7 @@ export class SourceDeleteModal extends Modal {
                 cls: "pdfcompose-source-template-row",
             });
 
-        templateRow.style.display = "none";
+        templateRow.setCssStyles({ display: "none" });
 
         templateRow.createEl("label", {
             text: "Template:",
@@ -4698,9 +4609,7 @@ export class ExportPdfModal extends Modal {
         const selectNoneBtn = selectRow.createEl("button", { text: "Select None", cls: "pdfcompose-sidebar-btn" });
 
         const listEl = contentEl.createDiv({ cls: "pdfcompose-export-page-list" });
-        listEl.style.maxHeight = "320px";
-        listEl.style.overflowY = "auto";
-        listEl.style.marginTop = "10px";
+        listEl.setCssStyles({ maxHeight: "320px", overflowY: "auto", marginTop: "10px" });
 
         const checkboxes: HTMLInputElement[] = [];
         this.pages.forEach((p, idx) => {
@@ -4776,7 +4685,7 @@ export class LabelEditModal extends Modal {
         contentEl.createEl("h2", { text: this.isLine ? "Label for the Line" : "Text in Form" });
 
         const textarea = contentEl.createEl("textarea", { attr: { rows: "4" } });
-        textarea.style.width = "100%";
+        textarea.setCssStyles({ width: "100%" });
         textarea.value = this.text;
         textarea.addEventListener("input", () => { this.text = textarea.value; });
 
