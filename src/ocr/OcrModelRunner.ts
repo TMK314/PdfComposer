@@ -289,29 +289,3 @@ export class OcrModelRunner {
         await this.reset();
     }
 }
-
-// Neue Hilfsfunktion, die das script-Element zurückgibt
-function loadScriptAndGetElement(url: string): Promise<HTMLScriptElement> {
-    return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-ocr-runtime-src="${url}"]`);
-        if (existing) {
-            if (existing.getAttribute("data-ocr-runtime-loaded") === "true") {
-                resolve(existing as HTMLScriptElement);
-                return;
-            }
-            existing.addEventListener("load", () => resolve(existing as HTMLScriptElement));
-            existing.addEventListener("error", () => reject(new Error(`Skript konnte nicht geladen werden: ${url}`)));
-            return;
-        }
-        const script = document.createElement("script");
-        script.src = url;
-        script.async = true;
-        script.setAttribute("data-ocr-runtime-src", url);
-        script.addEventListener("load", () => {
-            script.setAttribute("data-ocr-runtime-loaded", "true");
-            resolve(script);
-        });
-        script.addEventListener("error", () => reject(new Error(`Skript konnte nicht geladen werden: ${url}`)));
-        document.head.appendChild(script);
-    });
-}

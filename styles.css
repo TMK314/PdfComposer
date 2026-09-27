@@ -284,7 +284,6 @@
 
 .pdfcompose-source-list {
     display: flex;
-    gap: 6px;
     flex-wrap: wrap;
     align-items: center;
     margin-left: 16px;
@@ -960,7 +959,6 @@ body.is-mobile .pdfcompose-sidebar-controls .pdfcompose-sidebar-checkbox {
     border: 1px dashed transparent;
     background: rgba(255, 255, 255, 0.001);
     pointer-events: auto;
-    position: absolute;
     z-index: 21;
 }
 
@@ -1115,7 +1113,6 @@ body.is-mobile .pdfcompose-pdfannot-handle-v {
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
     padding: 4px;
-    display: none;
     z-index: 1000;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
     backdrop-filter: blur(8px);
