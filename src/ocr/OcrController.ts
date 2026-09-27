@@ -149,10 +149,6 @@ export class OcrController {
         // --- DEBUG: Gruppengrößen sichtbar machen ---
         for (const g of groups) {
             const totalPoints = g.strokes.reduce((sum, s) => sum + s.points.length, 0);
-            console.log(
-                `[OCR-Debug] Gruppe: ${g.strokes.length} Striche, ${totalPoints} Punkte, ` +
-                `bounds=${JSON.stringify(g.bounds)}`
-            );
             if (totalPoints > settings.ocrMaxSequenceLength) {
                 console.warn(
                     `[OCR-Debug] Gruppe überschreitet ocrMaxSequenceLength (${settings.ocrMaxSequenceLength}) ` +

@@ -367,54 +367,6 @@ export function buildVariableWidthPathData(points: RibbonInputPoint[]): string {
     return d;
 }
 
-/**
- * Verdichtet die Punktfolge NUR dort, wo es nötig ist: Auf Segmenten, die
- * länger als das Dreifache des lokalen Radius sind, bleibt der Strich
- * zweipunktig (die Bezier-Kurve macht die Wölbung). Auf kürzeren Segmenten
- * (typisch an spitzen Knicken) werden Zwischenpunkte eingefügt, damit die
- * Kontur dort genügend Stützstellen für eine saubere Füllung ohne Selbst-
- * überschneidung hat.
- *
- * Der Radius-Maßstab ist bewusst großzügig (Faktor 3): erst wenn das
- * Segment deutlich kürzer als der Durchmesser ist, besteht überhaupt die
- * Gefahr, dass die Offset-Kontur den gegenüberliegenden Rand überholt.
- */
-function adaptiveResample(points: RibbonInputPoint[]): RibbonPoint[] {
-    if (points.length < 2) return points.map(p => ({ x: p.x, y: p.y, w: p.w }));
-
-    const result: RibbonPoint[] = [{ x: points[0].x, y: points[0].y, w: points[0].w }];
-
-    for (let i = 1; i < points.length; i++) {
-        const prev = points[i - 1];
-        const curr = points[i];
-        const dx = curr.x - prev.x;
-        const dy = curr.y - prev.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist === 0) continue;
-
-        const avgRadius = (prev.w + curr.w) / 4;
-        const threshold = avgRadius * 3;
-
-        if (dist <= threshold) {
-            // Kurzes Segment -> in Stücke von etwa 1× Radius zerlegen.
-            const steps = Math.max(1, Math.ceil(dist / Math.max(0.75, avgRadius)));
-            for (let s = 1; s < steps; s++) {
-                const t = s / steps;
-                result.push({
-                    x: prev.x + dx * t,
-                    y: prev.y + dy * t,
-                    w: prev.w + (curr.w - prev.w) * t,
-                });
-            }
-        }
-        // Langes Segment -> unverändert übernehmen (nur Endpunkt anhängen).
-
-        result.push({ x: curr.x, y: curr.y, w: curr.w });
-    }
-
-    return result;
-}
-
 /** true, wenn alle Breiten (annähernd) identisch sind - dann genügt ein einfacher Stroke mit fester Breite statt der teureren Ribbon-Geometrie. */
 export function isUniformWidth(widths: number[]): boolean {
     if (widths.length === 0) return true;

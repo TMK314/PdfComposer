@@ -1,8 +1,8 @@
 {
   "id": "pdf-composer",
   "name": "PDF Composer",
-  "version": "0.1.2",
-  "minAppVersion": "1.4.0",
+  "version": "0.1.3",
+  "minAppVersion": "1.7.2",
   "description": "Combine PDF pages and blank notebook pages into one document, draw and annotate on them, recognize your handwriting offline, search everything, and export back to a standalone PDF.",
   "author": "Theodor Markus Kaiser",
   "authorUrl": "https://github.com/TMK314",

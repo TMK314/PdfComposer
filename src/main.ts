@@ -1,4 +1,4 @@
-import { Plugin, TFile, Menu, WorkspaceLeaf, Notice } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf, Notice } from "obsidian";
 import { PdfComposeView } from "./view/PdfComposeView";
 import { VIEW_TYPE_PDFCOMPOSE } from "./view/constants";
 import { isPdfComposeFile } from "./parser/FrontmatterParser";

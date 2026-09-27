@@ -82,9 +82,6 @@ const FEATURES_PER_POINT = 3; // [x, y, t] – siehe OcrStrokeCollector.buildNor
 import "@tensorflow/tfjs/dist/tf.min.js";
 import "@tensorflow/tfjs-tflite/dist/tf-tflite.min.js";
 
-declare const tf: any;
-declare const tflite: any;
-
 function getRuntime(): { tf: any; tflite: any } {
     const w = window as any;
     if (!w.tf || !w.tflite) {
@@ -264,8 +261,6 @@ export class OcrModelRunner {
             }
             prevClass = bestIdx;
         }
-
-        console.log(`[OCR-Debug] Rohe Klassenindizes (blankIndex=${blankIndex}):`, rawIndices.join(","));
 
         return { text, confidence: confCount > 0 ? confSum / confCount : 0 };
     }

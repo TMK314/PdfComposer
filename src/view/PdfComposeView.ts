@@ -2494,7 +2494,7 @@ export class PdfComposeView extends ItemView {
             });
         }
 
-        requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
             for (const entry of entries) {
                 this.ui.updateConnector(pageId, entry);
             }
@@ -2602,7 +2602,7 @@ export class PdfComposeView extends ItemView {
         const margin = 120; // Abstand zur Werkzeugleiste/den Rändern
         if (px < cr.left + margin || px > cr.right - margin) container.scrollLeft += px - (cr.left + cr.width / 2);
         if (py < cr.top + margin || py > cr.bottom - margin) container.scrollTop += py - (cr.top + cr.height / 2);
-        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        await new Promise<void>((r) => window.requestAnimationFrame(() => r()));
         ({ px, py } = locate());
         return this.caretFromPoint(px, py);
     }
@@ -3278,9 +3278,9 @@ export class PdfComposeView extends ItemView {
                 this.manualPanMomentumRafId = null;
                 return;
             }
-            this.manualPanMomentumRafId = requestAnimationFrame(step);
+            this.manualPanMomentumRafId = window.requestAnimationFrame(step);
         };
-        this.manualPanMomentumRafId = requestAnimationFrame(step);
+        this.manualPanMomentumRafId = window.requestAnimationFrame(step);
     }
 
     private cancelManualPanMomentum(): void {
@@ -3786,7 +3786,7 @@ export class PdfComposeView extends ItemView {
 
         if (!this.freehandRedrawScheduled) {
             this.freehandRedrawScheduled = true;
-            requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
                 this.freehandRedrawScheduled = false;
                 if (this.activeStrokePath && this.activeStrokeColor && this.activeStroke) {
                     this.applyFreehandPathAttributes(
@@ -5096,10 +5096,6 @@ export class PdfComposeView extends ItemView {
                 y: newY,
             });
         }
-
-        // Zielseiten-Textblöcke ggf. anlegen / erweitern
-        const targetBlocks = this.textBlocksCache.get(targetPageId) ?? [];
-        const newTargetBlocks = [...targetBlocks, ...translatedBlocks];
 
         // Persistieren: zuerst Quellseite bereinigen, dann Zielseite schreiben.
         // Hinweis: setPageAnnotations ruft intern redrawPageFromCache auf, was
@@ -8131,7 +8127,7 @@ export class PdfComposeView extends ItemView {
         this.ui.updateZoomDisplay(this.zoomLevel);
         if (liveOnly) return;
         this.scheduleRerasterForCurrentZoom();
-        if (this.rangeSession) requestAnimationFrame(() => this.layoutRangeSession());
+        if (this.rangeSession) window.requestAnimationFrame(() => this.layoutRangeSession());
         this.refreshConnectorsAfterLayoutChange();
     }
 
@@ -8290,8 +8286,8 @@ export class PdfComposeView extends ItemView {
      */
     private refreshConnectorsAfterLayoutChange(): void {
         // Zuerst zwei Frames abwarten, dann noch einen kurzen Timeout
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
                 // Alle Connectors neu zeichnen (für alle Seiten)
                 for (const [pageId, entries] of this.pdfAnnotationsCache.entries()) {
                     for (const entry of entries) {

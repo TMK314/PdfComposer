@@ -19,7 +19,6 @@
 // (.callout[data-callout="ocr"]) ein eigenes Icon/eine eigene Farbe vergeben.
 
 import { OcrMeta } from "../types";
-import { compressText, decompressText } from "../pdf/VectorCompression";
 
 export interface OcrWordEntry {
     text: string;
@@ -53,10 +52,6 @@ export function extractOcrBlockContents(content: string): Map<string, string> {
     }
     return map;
 }
-
-const BLOCK_SOURCE =
-    '<!--pdfcompose-ocr\\s+id="([^"]+)"\\s+page="([^"]+)"\\s+hash="([^"]*)"\\s+data="([^"]*)"-->' +
-    '\\r?\\n([\\s\\S]*?)<!--pdfcompose-ocr-end\\s+id="\\1"-->';
 
 export function parseOcrBlocks(content: string, frontmatter: any): OcrBlockEntry[] {
     const metas: OcrMeta[] = frontmatter.ocrBlocks || [];
@@ -92,14 +87,6 @@ export function serializeOcrBlock(entry: OcrBlockEntry): string {
         .map(line => `> ${line}`)
         .join("\n");
     return `<!--pdfcompose-ocr id="${entry.id}"-->\n> [!ocr]- OCR text (automatically recognized)\n${calloutBody}\n<!--pdfcompose-ocr-end id="${entry.id}"-->`;
-}
-
-function blockRegexForId(id: string): RegExp {
-    const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(
-        `<!--pdfcompose-ocr\\s+id="${escaped}"[^>]*-->\\r?\\n[\\s\\S]*?<!--pdfcompose-ocr-end\\s+id="${escaped}"-->`,
-        "g"
-    );
 }
 
 /** Ersetzt ein vorhandenes OCR-Ergebnis (per id) oder hängt ein neues ans Dateiende an. */

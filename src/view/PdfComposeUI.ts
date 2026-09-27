@@ -233,11 +233,6 @@ export class PdfComposeUI {
         hamburgerBtn.setAttribute("title", "Show/hide sidebar");
         hamburgerBtn.addEventListener("click", () => this.toggleSidebar());
 
-        const titleEl = this.sidebarHeaderEl.createEl("span", {
-            cls: "pdfcompose-sidebar-title",
-            text: this.view.currentFile?.basename ?? "PDF Compose",
-        });
-
         // Tabs
         this.sidebarTabsEl = this.sidebarEl.createDiv({ cls: "pdfcompose-sidebar-tabs" });
         const tabs: { id: "pages" | "sources" | "search"; label: string; icon: string }[] = [
@@ -517,7 +512,7 @@ export class PdfComposeUI {
      */
     public collapseSidebarIfPanelWrapped(): void {
         if (!Platform.isMobile || this.isSidebarCollapsed) return;
-        requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
             if (this.isSidebarCollapsed) return;
             const toolbarRect = this.annotationToolbarEl.getBoundingClientRect();
             const panelRect = this.annotationPanelEl.getBoundingClientRect();
@@ -605,7 +600,7 @@ export class PdfComposeUI {
 
         // Wenn Suche-Tab aktiv, Fokus ins Suchfeld
         if (tab === "search") {
-            setTimeout(() => this.searchInputEl.focus(), 50);
+            window.setTimeout(() => this.searchInputEl.focus(), 50);
         }
     }
 
@@ -927,7 +922,7 @@ export class PdfComposeUI {
             // sein Scrollen und wir können die Seitenliste nicht scrollen.
             // Stattdessen: Long-Press-Timer; erst wenn der feuert, wird die
             // Geste exklusiv übernommen.
-            this.pointerLongPressTimer = window.setTimeout(() => {
+            this.pointerLongPressTimer = window.window.setTimeout(() => {
                 this.pointerLongPressTimer = null;
                 this.activateSidebarDrag(e.pointerId, pageId, item);
             }, PdfComposeUI.LONG_PRESS_MS);
@@ -1516,7 +1511,7 @@ export class PdfComposeUI {
 
     private extendNavLock(ms: number): void {
         if (this.navLockTimer !== null) window.clearTimeout(this.navLockTimer);
-        this.navLockTimer = window.setTimeout(() => {
+        this.navLockTimer = window.window.setTimeout(() => {
             this.navLockTimer = null;
             this.navLockPageId = null;
         }, ms);
@@ -2824,12 +2819,12 @@ export class PdfComposeUI {
 
         if (pendingSingle.length === 0 && pendingGroups.length === 0) return;
 
-        // Batched Read/Write statt einem eigenen requestAnimationFrame pro
+        // Batched Read/Write statt einem eigenen window.requestAnimationFrame pro
         // Textelement: erst ALLE Layouts schreiben (oben), dann in einem
         // einzigen Frame ALLE Breiten lesen, dann ALLE Positionen/Transforms
         // schreiben. Verhindert erzwungene Reflows (Layout-Thrashing), die
         // bei textreichen Seiten auf schwächeren Mobile-Geräten spürbar sind.
-        requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
             const singleWidths = pendingSingle.map(p => p.span.getBoundingClientRect().width);
             const groupWidths = pendingGroups.map(g => g.spans.map(s => s.getBoundingClientRect().width));
 
@@ -3176,7 +3171,6 @@ export class PdfComposeUI {
         svg.addEventListener("pointerup", (e) => onPointerUp(e, svg, pageId));
         svg.addEventListener("pointercancel", (e) => onPointerUp(e, svg, pageId));
 
-        const stored = doc.annotations[pageId];
         try {
             // Immer aus dem View-Stand zeichnen, nie abhängig vom (evtl. veralteten) doc
             const objects = this.view.getPageAnnotations(pageId);

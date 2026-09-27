@@ -440,7 +440,7 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 
 	/** Vault-relative default folder for this plugin's OCR resources. */
 	private ocrDefaultDir(): string {
-		return `${this.plugin.manifest.dir ?? '.obsidian/plugins/pdfcompose'}/ocr`;
+		return `${this.plugin.manifest.dir ?? this.plugin.app.vault.configDir + '/plugins/pdfcompose'}/ocr`;
 	}
 
 	/**

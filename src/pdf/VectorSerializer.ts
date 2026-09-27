@@ -12,7 +12,6 @@ import {
     LinePoint,
     LineSegmentKind,
     PressureCurve,
-    PressureSettings,
 } from "../types";
 import { compressText, decompressText } from "./VectorCompression";
 

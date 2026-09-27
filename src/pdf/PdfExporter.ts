@@ -50,7 +50,6 @@ import {
     isPdfPage,
     isBlankPage,
     FreehandObject,
-    DiamondObject,
 }
     from "../types";
 import { PAGE_SIZES } from "../view/constants";
@@ -220,69 +219,6 @@ function hexToHueDegreesExport(hex: string): number {
     return h;
 }
 
-/**
- * Baut denselben CSS-Filter-String wie PdfComposeView.buildPageFilter() für
- * die Live-Ansicht - als reine Funktion, damit der Export PIXEL-IDENTISCH
- * zur Anzeige aussieht, statt einer eigenen (abweichenden) Invertierung.
- */
-function buildExportFilter(invert: boolean, colorMode: ColorMode, settings: PdfComposeSettings): string {
-    const applyInLight = settings.applyFiltersInLightMode ?? false;
-    const applyInDark = settings.applyFiltersInDarkMode ?? true;
-    const isDark = colorMode === "dark";
-    const applyFilters = (isDark && applyInDark) || (!isDark && applyInLight);
-
-    const monochrome = settings.darkModeMonochromeColor;
-    const whiteDim = settings.darkModeWhiteDim ?? 0;
-    const blackLighten = settings.darkModeBlackLighten ?? 0;
-    const userHueRotate = settings.darkModeHueRotate ?? 0;
-
-    const contrast = Math.max(0.5, 1 - whiteDim / 200);
-    const brightness = Math.min(1.5, 1 + blackLighten / 200);
-
-    let filter = "";
-    if (invert) {
-        filter += "invert(1) hue-rotate(180deg)";
-    }
-
-    if (monochrome) {
-        const hue = hexToHueDegreesExport(monochrome);
-        filter += ` grayscale(1) sepia(1) hue-rotate(${hue}deg) saturate(4)`;
-    } else if (applyFilters) {
-        if (userHueRotate !== 0) filter += ` hue-rotate(${userHueRotate}deg)`;
-        if (contrast !== 1 || brightness !== 1) filter += ` brightness(${brightness}) contrast(${contrast})`;
-    }
-
-    return filter.trim();
-}
-
-/** RGB (0..1) → HSL, H und S beibehalten, L auf 1−L setzen, zurück nach RGB. */
-function invertRgbHuePreserving(r: number, g: number, b: number): [number, number, number] {
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const l = (max + min) / 2;
-    const d = max - min;
-    let h = 0, s = 0;
-    if (d !== 0) {
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-            case g: h = ((b - r) / d + 2) / 6; break;
-            case b: h = ((r - g) / d + 4) / 6; break;
-        }
-    }
-    const lInv = 1 - l;
-    if (s === 0) return [lInv, lInv, lInv];
-    const q = lInv < 0.5 ? lInv * (1 + s) : lInv + s - lInv * s;
-    const p = 2 * lInv - q;
-    const h2r = (t: number) => {
-        if (t < 0) t += 1; if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-    };
-    return [h2r(h + 1 / 3), h2r(h), h2r(h - 1 / 3)];
-}
-
 // ============================================================
 //  SEITEN AUFBAUEN
 // ============================================================
@@ -363,47 +299,6 @@ async function appendPdfPage(
 
     drawObjects(copied, normalObjects, height, invert, fonts);
     drawTextBlocks(copied, textBlocks, height, fonts, invert);
-}
-
-/**
- * Kehrt die Farben einer bereits vollständig gezeichneten Seite um, OHNE
- * die Seite zu rastern: eine deckende weiße Fläche wird mit PDF-Blend-Mode
- * "Difference" über den gesamten Seiteninhalt gelegt. Difference(weiß, C)
- * = |1 - C| = 1 - C entspricht exakt einer Farbinvertierung pro RGB-Kanal
- * - dieselbe Operation wie ein CSS "invert(1)"-Filter, aber als echter
- * PDF-Blend-Mode direkt im Vektor-Inhalt. Text bleibt dadurch echter,
- * kopier-/markierbarer Text, eingebettete Bilder bleiben in
- * Originalauflösung erhalten - nichts wird gerastert.
- */
-function applyPageInvertOverlay(pdfDoc: PDFDocument, page: PDFPage, width: number, height: number): void {
-    const context = pdfDoc.context;
-
-    const gsDict = PDFDict.withContext(context);
-    gsDict.set(PDFName.of("Type"), PDFName.of("ExtGState"));
-    gsDict.set(PDFName.of("BM"), PDFName.of("Difference"));
-    const gsRef = context.register(gsDict);
-
-    let resources = page.node.lookupMaybe(PDFName.of("Resources"), PDFDict);
-    if (!resources) {
-        resources = PDFDict.withContext(context);
-        page.node.set(PDFName.of("Resources"), resources);
-    }
-    let extGStateDict = resources.lookupMaybe(PDFName.of("ExtGState"), PDFDict);
-    if (!extGStateDict) {
-        extGStateDict = PDFDict.withContext(context);
-        resources.set(PDFName.of("ExtGState"), extGStateDict);
-    }
-    const gsName = PDFName.of("PdfComposeInvert");
-    extGStateDict.set(gsName, gsRef);
-
-    page.pushOperators(
-        PDFOperator.of(PDFOperatorNames.PushGraphicsState),
-        PDFOperator.of(PDFOperatorNames.SetGraphicsStateParams, [gsName]),
-        PDFOperator.of(PDFOperatorNames.NonStrokingColorRgb, [PDFNumber.of(1), PDFNumber.of(1), PDFNumber.of(1)]),
-        PDFOperator.of(PDFOperatorNames.AppendRectangle, [PDFNumber.of(0), PDFNumber.of(0), PDFNumber.of(width), PDFNumber.of(height)]),
-        PDFOperator.of(PDFOperatorNames.FillNonZero),
-        PDFOperator.of(PDFOperatorNames.PopGraphicsState)
-    );
 }
 
 function appendBlankPage(
@@ -632,13 +527,6 @@ function withRoundJoin(pdfPage: PDFPage, draw: () => void): void {
     } finally {
         pdfPage.pushOperators(popGraphicsState());
     }
-}
-
-function freehandToSvgPath(points: { x: number; y: number }[]): string {
-    if (points.length === 0) return "";
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) d += ` L ${points[i].x} ${points[i].y}`;
-    return d;
 }
 
 // ============================================================
