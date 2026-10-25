@@ -1690,6 +1690,17 @@ export class PdfComposeView extends ItemView {
         } else if (isPdfPage(page)) {
             await this.renderPdfPage(page, doc, canvasSlot, body);
         }
+        // Kontextmenü unterdrücken, solange Stift (oder Radierer) aktiv ist –
+        // sonst öffnet der Rechtsklick / die Stift-Seitentaste das Browser-/
+        // OS-Menü und unterbricht das Radieren per Sekundärklick.
+        const svg = this.ui.annotationLayers.get(page.id);
+        if (svg) {
+            svg.addEventListener("contextmenu", (e) => {
+                if (isPenTool(this.currentTool) || this.currentTool === "eraser") {
+                    e.preventDefault();
+                }
+            });
+        }
         if (this.ocrDebugEnabledPageIds.has(page.id)) {
             this.renderOcrDebugForPage(page.id);
         }
@@ -3061,6 +3072,29 @@ export class PdfComposeView extends ItemView {
             return;
         }
 
+        // NEU: Stift-Werkzeug + Sekundärklick (rechte Maustaste / Stift-Seitentaste)
+        // → radieren wie mit dem Radierer-Werkzeug, ohne den Stift zu wechseln.
+        if (this.isEraseSecondaryClick(evt)) {
+            evt.preventDefault();
+            // Eine evtl. noch laufende Freihand-Aktion sauber beenden, damit
+            // der Radierer exklusiv übernimmt (z. B. wenn links und rechts
+            // gleichzeitig gedrückt wird).
+            if (this.activeStroke && this.activePointerId !== null) {
+                this.activeStrokePath?.remove();
+                this.activeStroke = null;
+                this.activeStrokeColor = null;
+                this.activeStrokePath = null;
+                this.activeStrokePageId = null;
+                this.activePointerId = null;
+            }
+            try { svg.setPointerCapture(evt.pointerId); } catch { /* ignore */ }
+            this.eraserPointerId = evt.pointerId;
+            this.eraserActivePageId = pageId;
+            this.lastErasePoint = null;
+            this.eraseAtEvent(evt, svg, pageId);
+            return;
+        }
+
         if (this.currentTool !== "none"
             && this.currentTool !== "select-rect"
             && this.currentTool !== "select-lasso"
@@ -3096,16 +3130,21 @@ export class PdfComposeView extends ItemView {
 
     private onAnnotationPointerMove(evt: PointerEvent, svg: SVGSVGElement, pageId: string): void {
         if (evt.pointerType === "touch" && this.activeTouchPointers.size >= 2) {
-            return; // Pinch-Zoom übernimmt vollständig - siehe onAnnotationPointerDown.
+            return;
         }
         if (this.manualPanPointerId === evt.pointerId) {
             this.continueManualTouchPan(evt);
             return;
         }
+
+        // Radierer hat Vorrang (auch bei aktivem Stift-Werkzeug via Sekundärklick).
+        if (this.eraserPointerId === evt.pointerId) {
+            this.eraseAtEvent(evt, svg, pageId);
+            return;
+        }
+
         if (isPenTool(this.currentTool)) {
             this.continueFreehandStroke(evt, svg, pageId);
-        } else if (this.currentTool === "eraser") {
-            if (this.eraserPointerId === evt.pointerId) this.eraseAtEvent(evt, svg, pageId);
         } else if (this.dragStart && this.dragPageId === pageId && this.dragPointerId === evt.pointerId) {
             this.continueDragShape(evt, svg);
         } else if (this.multiPoints && this.multiPageId === pageId && this.multiSvg === svg) {
@@ -3127,21 +3166,20 @@ export class PdfComposeView extends ItemView {
             return;
         }
         try {
-            if (isPenTool(this.currentTool)) {
-                await this.finishFreehandStroke(evt, svg, pageId);
+            // Radierer hat Vorrang (auch bei aktivem Stift-Werkzeug via Sekundärklick).
+            if (this.eraserPointerId === evt.pointerId) {
+                if (svg.hasPointerCapture(evt.pointerId)) {
+                    try { svg.releasePointerCapture(evt.pointerId); } catch { /* ignore */ }
+                }
+                this.eraserPointerId = null;
+                this.eraserActivePageId = null;
+                this.lastErasePoint = null;
+                await this.commitErase(pageId);
                 return;
             }
 
-            if (this.currentTool === "eraser") {
-                if (this.eraserPointerId === evt.pointerId) {
-                    if (svg.hasPointerCapture(evt.pointerId)) {
-                        svg.releasePointerCapture(evt.pointerId);
-                    }
-                    this.eraserPointerId = null;
-                    this.eraserActivePageId = null;
-                    this.lastErasePoint = null;
-                    await this.commitErase(pageId);
-                }
+            if (isPenTool(this.currentTool)) {
+                await this.finishFreehandStroke(evt, svg, pageId);
                 return;
             }
 
@@ -3150,11 +3188,7 @@ export class PdfComposeView extends ItemView {
                 return;
             }
 
-            if (
-                this.dragStart &&
-                this.dragPageId === pageId &&
-                this.dragPointerId === evt.pointerId
-            ) {
+            if (this.dragStart && this.dragPageId === pageId && this.dragPointerId === evt.pointerId) {
                 await this.finishDragShape(evt, svg, pageId);
                 return;
             }
@@ -3169,7 +3203,10 @@ export class PdfComposeView extends ItemView {
             if (this.selectionPointerId === evt.pointerId) this.selectionPointerId = null;
             if (this.dragPointerId === evt.pointerId) this.dragPointerId = null;
             if (this.textDragPointerId === evt.pointerId) this.textDragPointerId = null;
-            if (this.eraserPointerId === evt.pointerId) { this.eraserPointerId = null; this.eraserActivePageId = null; }
+            if (this.eraserPointerId === evt.pointerId) {
+                this.eraserPointerId = null;
+                this.eraserActivePageId = null;
+            }
         }
     }
 
@@ -3210,6 +3247,25 @@ export class PdfComposeView extends ItemView {
             const el = this.ui.pagesContentEl.querySelector(`[data-page-id="${pageId}"]`);
             el?.classList.add("pdfcompose-cross-page-target");
         }
+    }
+
+    /**
+ * Prüft, ob ein Pointer-Event einen "Sekundärklick" darstellt, der bei
+ * aktivem Stift-Werkzeug zum Radieren umschalten soll:
+ *   - Maus: rechte Maustaste (button 2) – links bleibt Zeichnen.
+ *   - Stift: jede Taste außer der primären (0) – typischerweise die
+ *     Barrel-/Seitentaste (Chromium meldet dafür button 2 oder 5).
+ * Touch/Finger wird nicht behandelt.
+ *
+ * Nur bei aktivem Stift-Werkzeug relevant. Bei allen anderen Werkzeugen
+ * (Radierer, Auswahl, Formen, Text, Zeiger) hat das Event seine
+ * bestehende Bedeutung.
+ */
+    private isEraseSecondaryClick(evt: PointerEvent): boolean {
+        if (!isPenTool(this.currentTool)) return false;
+        if (evt.pointerType === "mouse") return evt.button === 2;
+        if (evt.pointerType === "pen") return evt.button !== 0;
+        return false;
     }
 
     /**
