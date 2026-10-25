@@ -1851,3 +1851,28 @@ body.pdfcompose-fullscreen .mobile-navbar {
 body.pdfcompose-fullscreen.is-mobile {
     --mobile-navbar-height: 0px;
 }
+
+.pdfcompose-embed-loading {
+    padding: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.pdfcompose-embed-error {
+    padding: 10px;
+    background: var(--background-secondary);
+    color: var(--text-error);
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.pdfcompose-embed-iframe {
+    width: 100%;
+    height: 80vh;
+    min-height: 400px;
+    max-height: 1200px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: var(--background-primary);
+    display: block;
+}

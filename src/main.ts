@@ -1,11 +1,22 @@
-import { Plugin, TFile, WorkspaceLeaf, Notice } from "obsidian";
+import {
+    Plugin, TFile, WorkspaceLeaf, Notice, CachedMetadata,
+    MarkdownPostProcessorContext,
+} from "obsidian";
 import { PdfComposeView } from "./view/PdfComposeView";
 import { VIEW_TYPE_PDFCOMPOSE } from "./view/constants";
-import { isPdfComposeFile } from "./parser/FrontmatterParser";
+import { isPdfComposeFile, parseFrontmatter } from "./parser/FrontmatterParser";
 import { PdfComposeSettings, DEFAULT_SETTINGS, PdfComposeSettingTab } from "./settings";
 import { OcrTrainingCaptureModal } from "./ocr/OcrTrainingCaptureModal";
+import { PdfPageRenderer } from "./pdf/PdfPageRenderer";
+import { exportPdfComposeToPdf } from "./pdf/PdfExporter";
+import { ColorMode, PdfComposeDocument } from "./types";
+import * as YAML from "js-yaml";
 
 export default class PdfComposePlugin extends Plugin {
+    private companionPdfDebounceTimers: Map<string, number> = new Map();
+    private pdfComposeBlobUrls: Map<string, { mtime: number; url: string }> = new Map();
+    private companionRenderer: PdfPageRenderer | null = null;
+
     private suppressAutoSwitchFor: {
         leaf: WorkspaceLeaf;
         filePath: string;
@@ -38,9 +49,6 @@ export default class PdfComposePlugin extends Plugin {
 
                 const leaf = this.app.workspace.getLeaf(false);
 
-                // Ein einmaliger, gezielter Wechsel von PDF-Compose -> Markdown
-                // darf nicht sofort durch den automatischen Compose-Wechsel
-                // rückgängig gemacht werden.
                 if (
                     this.suppressAutoSwitchFor &&
                     this.suppressAutoSwitchFor.leaf === leaf &&
@@ -50,7 +58,6 @@ export default class PdfComposePlugin extends Plugin {
                     return;
                 }
 
-                // Prüfen, ob der aktuelle Leaf bereits die PDF-Compose-Ansicht hat.
                 if (leaf.view.getViewType() === VIEW_TYPE_PDFCOMPOSE) return;
 
                 await this.maybeSwitchToComposeView(file);
@@ -196,6 +203,65 @@ export default class PdfComposePlugin extends Plugin {
                 });
             })
         );
+
+        // ---------------------------------------------------------------
+        // PDF-Compose-Dateien als PDF einbetten
+        // ---------------------------------------------------------------
+
+        // Command: Companion-PDF für die aktuell geöffnete Datei erzeugen
+        this.addCommand({
+            id: "pdfcompose-generate-companion-pdf",
+            name: "Generate PDF companion for current PDF Compose file",
+            checkCallback: (checking) => {
+                const file = this.app.workspace.getActiveFile();
+                if (!file) return false;
+                const cache = this.app.metadataCache.getFileCache(file);
+                if (!isPdfComposeFile(cache)) return false;
+                if (!checking) void this.generateCompanionPdf(file, true);
+                return true;
+            },
+        });
+
+        // Command: Companion-PDFs für ALLE PDF-Compose-Dateien erzeugen
+        this.addCommand({
+            id: "pdfcompose-generate-all-companion-pdfs",
+            name: "Generate PDF companions for all PDF Compose files",
+            callback: async () => { await this.generateAllCompanionPdfs(); },
+        });
+
+        // Primär: über metadataCache.changed (feuert NACH der Cache-Aktualisierung)
+        this.registerEvent(
+            this.app.metadataCache.on("changed", (file, _data, cache) => {
+                if (!this.settings.generateCompanionPdf) return;
+                if (!isPdfComposeFile(cache)) return;
+                this.scheduleCompanionPdfGeneration(file);
+            })
+        );
+
+        // Fallback: bei sehr frühen Änderungen greift vault.modify; Prüfung
+        // erfolgt im Debounce über den Datei-INHALT (nicht über den Cache).
+        this.registerEvent(
+            this.app.vault.on("modify", (file) => {
+                if (!(file instanceof TFile) || file.extension !== "md") return;
+                if (!this.settings.generateCompanionPdf) return;
+                this.scheduleCompanionPdfGeneration(file);
+            })
+        );
+
+        // Neuanlage: Companion automatisch erzeugen, sobald die Datei steht.
+        this.registerEvent(
+            this.app.vault.on("create", (file) => {
+                if (!(file instanceof TFile) || file.extension !== "md") return;
+                if (!this.settings.generateCompanionPdf) return;
+                this.scheduleCompanionPdfGeneration(file);
+            })
+        );
+
+        // Post-Processor (Reading View): ![[Link]], ![[Link.md]] und
+        // ![[Link.pdf]] (Fallback) auf PDF-Compose-Dateien als PDF rendern.
+        this.registerMarkdownPostProcessor((el, ctx) => {
+            void this.processEmbeddedPdfComposeFiles(el, ctx);
+        });
     }
 
     /** Formatiert ein Datum als YYYY-MM-DD (lokal). */
@@ -328,8 +394,214 @@ export default class PdfComposePlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    onunload(): void {
-        // Ressourcen werden von den Views selbst freigegeben
+    // ============================================================
+    //  COMPANION-PDF & .lpdf
+    // ============================================================
+
+    private getCompanionRenderer(): PdfPageRenderer {
+        if (!this.companionRenderer) {
+            this.companionRenderer = new PdfPageRenderer(this.app.vault);
+        }
+        return this.companionRenderer;
+    }
+
+    private async readDocumentFreshFromFile(file: TFile): Promise<PdfComposeDocument> {
+        try {
+            const raw = await this.app.vault.read(file);
+            const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+            if (match) {
+                const fm = YAML.load(match[1]) as any;
+                if (fm && typeof fm === "object") {
+                    return parseFrontmatter({ frontmatter: fm } as unknown as CachedMetadata);
+                }
+            }
+        } catch { /* fallback */ }
+        return parseFrontmatter(this.app.metadataCache.getFileCache(file));
+    }
+
+    private companionPdfColorMode(): ColorMode {
+        const m = (this.settings.companionPdfColorMode || "original") as ColorMode;
+        return (m === "light" || m === "dark" || m === "original") ? m : "original";
+    }
+
+    /** Berechnet den Companion-Pfad (nur noch .pdf) aus dem Quellpfad. */
+    private companionPath(sourceFile: TFile): string {
+        const configured = (this.settings.companionPdfFolder || "").trim().replace(/\/+$/, "");
+        const folder = configured || (sourceFile.parent?.path ?? "");
+        return folder
+            ? `${folder}/${sourceFile.basename}.pdf`
+            : `${sourceFile.basename}.pdf`;
+    }
+
+    private scheduleCompanionPdfGeneration(file: TFile): void {
+        const existing = this.companionPdfDebounceTimers.get(file.path);
+        if (existing !== undefined) window.clearTimeout(existing);
+        const timer = window.setTimeout(async () => {
+            this.companionPdfDebounceTimers.delete(file.path);
+            // Robust: Datei-Inhalt prüfen, NICHT den ggf. veralteten Cache.
+            try {
+                const raw = await this.app.vault.read(file);
+                const fmMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+                if (!fmMatch) return;
+                let fm: any;
+                try { fm = YAML.load(fmMatch[1]); } catch { return; }
+                if (!fm || typeof fm !== "object" || fm.pdfcompose !== true) return;
+            } catch { return; }
+            await this.generateCompanionPdf(file, false);
+        }, 2000);
+        this.companionPdfDebounceTimers.set(file.path, timer);
+    }
+
+    public async generateCompanionPdf(file: TFile, notify: boolean): Promise<void> {
+        try {
+            if (file.extension !== "md") return;
+            const doc = await this.readDocumentFreshFromFile(file);
+            const renderer = this.getCompanionRenderer();
+            const bytes = await exportPdfComposeToPdf(
+                this.app, file, doc, renderer,
+                { colorMode: this.companionPdfColorMode() },
+            );
+
+            // -------- Companion .pdf schreiben --------
+            const pdfPath = this.companionPath(file);
+            await this.ensureFolderForPath(pdfPath);
+            const pdfBuffer = new ArrayBuffer(bytes.byteLength);
+            new Uint8Array(pdfBuffer).set(bytes);
+            const existingPdf = this.app.vault.getAbstractFileByPath(pdfPath);
+            if (existingPdf instanceof TFile) {
+                await this.app.vault.modifyBinary(existingPdf, pdfBuffer);
+            } else {
+                await this.app.vault.createBinary(pdfPath, pdfBuffer);
+            }
+
+            // Blob-Cache invalidieren, damit Embeds neu rendern
+            const cachedUrl = this.pdfComposeBlobUrls.get(file.path);
+            if (cachedUrl) {
+                URL.revokeObjectURL(cachedUrl.url);
+                this.pdfComposeBlobUrls.delete(file.path);
+            }
+
+            if (notify) new Notice(`PDF companion generated: ${pdfPath}`);
+        } catch (error) {
+            console.error("PDF Compose: companion generation failed for", file.path, error);
+            if (notify) new Notice(`PDF companion generation failed: ${String(error)}`);
+        }
+    }
+
+    private async ensureFolderForPath(vaultPath: string): Promise<void> {
+        const folder = vaultPath.split("/").slice(0, -1).join("/");
+        if (!folder) return;
+        if (!this.app.vault.getAbstractFileByPath(folder)) {
+            try { await this.app.vault.createFolder(folder); } catch { /* existiert bereits */ }
+        }
+    }
+
+    public async generateAllCompanionPdfs(): Promise<void> {
+        const files = this.app.vault.getMarkdownFiles().filter((f) => {
+            const cache = this.app.metadataCache.getFileCache(f);
+            return isPdfComposeFile(cache);
+        });
+        if (files.length === 0) {
+            new Notice("No PDF Compose files found.");
+            return;
+        }
+        for (const file of files) {
+            await this.generateCompanionPdf(file, false);
+        }
+        new Notice(`Generated ${files.length} PDF companion(s) with .lpdf markers.`);
+    }
+
+    // ============================================================
+    //  BLOB-URL-CACHE (auch vom Post-Processor genutzt)
+    // ============================================================
+
+    private async getComposeAsPdfBlobUrl(file: TFile): Promise<string> {
+        const stat = await this.app.vault.adapter.stat(file.path);
+        const mtime = stat?.mtime ?? 0;
+        const cached = this.pdfComposeBlobUrls.get(file.path);
+        if (cached && cached.mtime === mtime) return cached.url;
+
+        const doc = await this.readDocumentFreshFromFile(file);
+        const renderer = this.getCompanionRenderer();
+        const bytes = await exportPdfComposeToPdf(
+            this.app, file, doc, renderer,
+            { colorMode: this.companionPdfColorMode() },
+        );
+        const pdfBuffer = new ArrayBuffer(bytes.byteLength);
+        new Uint8Array(pdfBuffer).set(bytes);
+        const blob = new Blob([pdfBuffer], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        if (cached) URL.revokeObjectURL(cached.url);
+        this.pdfComposeBlobUrls.set(file.path, { mtime, url });
+        return url;
+    }
+
+    // ============================================================
+    //  POST-PROCESSOR (Reading View)
+    // ============================================================
+
+    private async processEmbeddedPdfComposeFiles(
+        el: HTMLElement,
+        ctx: MarkdownPostProcessorContext,
+    ): Promise<void> {
+        const embeds = el.querySelectorAll<HTMLElement>(".internal-embed[src]");
+        for (const embed of Array.from(embeds)) {
+            if (embed.classList.contains("pdfcompose-embed")) continue;
+            const src = embed.getAttribute("src");
+            if (!src) continue;
+
+            let file = this.app.metadataCache.getFirstLinkpathDest(src, ctx.sourcePath);
+
+            // ![[Link.pdf]] → Fallback auf Link.md (PDF Compose)
+            if (!file && src.toLowerCase().endsWith(".pdf")) {
+                const mdSrc = src.slice(0, -4) + ".md";
+                file = this.app.metadataCache.getFirstLinkpathDest(mdSrc, ctx.sourcePath);
+            }
+
+            if (!(file instanceof TFile)) continue;
+            if (file.extension !== "md") continue;
+            const cache = this.app.metadataCache.getFileCache(file);
+            if (!isPdfComposeFile(cache)) continue;
+
+            embed.addClass("pdfcompose-embed");
+            embed.empty();
+
+            const loading = embed.createDiv({
+                cls: "pdfcompose-embed-loading",
+                text: "Rendering PDF…",
+            });
+            try {
+                const url = await this.getComposeAsPdfBlobUrl(file);
+                loading.remove();
+                const iframe = embed.createEl("iframe", { cls: "pdfcompose-embed-iframe" });
+                iframe.src = url;
+                iframe.setAttribute("title", `PDF: ${file.basename}`);
+            } catch (error) {
+                loading.remove();
+                embed.createEl("div", {
+                    cls: "pdfcompose-embed-error",
+                    text: `Failed to render PDF Compose file: ${String(error)}`,
+                });
+            }
+        }
+    }
+
+    async onunload(): Promise<void> {
+        for (const { url } of this.pdfComposeBlobUrls.values()) {
+            try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+        }
+        this.pdfComposeBlobUrls.clear();
+
+        for (const timer of this.companionPdfDebounceTimers.values()) {
+            window.clearTimeout(timer);
+        }
+        this.companionPdfDebounceTimers.clear();
+
+        if (this.companionRenderer) {
+            await this.companionRenderer.destroy();
+            this.companionRenderer = null;
+        }
     }
 
     public async maybeSwitchToComposeView(file: TFile, force = false): Promise<void> {

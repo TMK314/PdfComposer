@@ -73,6 +73,13 @@ export interface PdfComposeSettings {
 	saveCreatedDate: boolean;
 
 	horizontalLayout: boolean;
+
+	/** Companian-PDF automatisch beim Speichern einer PDF-Compose-Datei erzeugen. */
+	generateCompanionPdf: boolean;
+	/** Zielordner für Companion-PDFs. Leer = gleicher Ordner wie die Quelle. */
+	companionPdfFolder: string;
+	/** Farbmodus für Companion-PDFs und Embed-Rendering. */
+	companionPdfColorMode: string;
 }
 
 export const DEFAULT_SETTINGS: PdfComposeSettings = {
@@ -123,6 +130,10 @@ export const DEFAULT_SETTINGS: PdfComposeSettings = {
 	saveCreatedDate: true,
 
 	horizontalLayout: false,
+
+	generateCompanionPdf: false,
+	companionPdfFolder: "",
+	companionPdfColorMode: "original",
 };
 
 export class PdfComposeSettingTab extends PluginSettingTab {
@@ -175,6 +186,8 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 		this.displayPageHeadingsSection(containerEl);
 
 		this.displaySearchSection(containerEl);
+
+		this.displayCompanionPdfSection(containerEl);
 	}
 
 	private displayDarkModeSection(containerEl: HTMLElement): void {
@@ -701,6 +714,65 @@ export class PdfComposeSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+	}
+
+	private displayCompanionPdfSection(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("PDF embedding").setHeading();
+		containerEl.createEl('p', {
+			cls: 'setting-item-description',
+			text:
+				'Embed PDF Compose files as PDF in other notes. With the setting below, a companion ' +
+				'".pdf" file is written next to each PDF Compose file, so that ![[Link.pdf]] works ' +
+				'through Obsidian\'s native PDF embed. Independently, ![[Link]] and ![[Link.md]] ' +
+				'embeds of PDF Compose files are rendered inline as a PDF in the reading view.',
+		});
+
+		new Setting(containerEl)
+			.setName('Auto-generate companion PDFs on save')
+			.setDesc(
+				'Writes a rendered .pdf file next to each PDF Compose .md file. ' +
+				'On enabling, existing files are processed once.'
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.generateCompanionPdf)
+					.onChange(async (value) => {
+						const wasEnabled = this.plugin.settings.generateCompanionPdf;
+						this.plugin.settings.generateCompanionPdf = value;
+						await this.plugin.saveSettings();
+						if (value && !wasEnabled) {
+							new Notice("Generating companions for existing PDF Compose files…");
+							await this.plugin.generateAllCompanionPdfs();
+						}
+					})
+			);
+
+		new Setting(containerEl)
+			.setName('Companion PDF folder')
+			.setDesc('Folder for generated companion PDFs. Empty = same folder as the source file. The filename is always "<basename>.pdf".')
+			.addText((text) =>
+				text
+					.setPlaceholder('e.g. Exports/PDFs')
+					.setValue(this.plugin.settings.companionPdfFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.companionPdfFolder = value.trim();
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName('Companion PDF color mode')
+			.setDesc('Color mode used when generating the companion PDF or rendering an embedded PDF Compose file.')
+			.addDropdown((dd) => {
+				dd.addOption('original', 'Original');
+				dd.addOption('light', 'Light');
+				dd.addOption('dark', 'Dark');
+				dd.setValue(this.plugin.settings.companionPdfColorMode || 'original');
+				dd.onChange(async (value) => {
+					this.plugin.settings.companionPdfColorMode = value;
+					await this.plugin.saveSettings();
+				});
+			});
 	}
 
 	/**
