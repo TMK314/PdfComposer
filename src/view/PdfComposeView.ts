@@ -52,6 +52,7 @@ import {
     ColorMode,
     InsertPosition,
     InsertPositionMode,
+    BuiltinTemplateId,
 } from "../types";
 import {
     TextBlockEntry,
@@ -215,6 +216,7 @@ export class PdfComposeView extends ItemView {
     private pinchStartZoom: number = 1;
     private pinchAnchor: ZoomAnchor | null = null;
     private isFullscreen: boolean = false;
+    private isAutoExtending: boolean = false;
 
     private eraserPointerId: number | null = null;
     private pendingEraseIds: Set<string> = new Set();
@@ -459,6 +461,11 @@ export class PdfComposeView extends ItemView {
         this.applyHorizontalLayout();
 
         this.ui.buildFullscreenToggle(moreOptionsPanel, () => this.toggleFullscreen());
+        this.ui.buildAutoExtendTemplatePagesToggle(
+            moreOptionsPanel,
+            this.plugin.settings.autoExtendTemplatePages,
+            (value) => { void this.setAutoExtendTemplatePages(value); },
+        );
 
         this.registerEvent(
             this.app.workspace.on("active-leaf-change", (leaf) => {
@@ -571,6 +578,60 @@ export class PdfComposeView extends ItemView {
             tap = null;
             if (wasTap && this.rangeSession && !this.rangeSession.dragging) this.endRangeSession();
         }, { capture: true });
+    }
+
+    /**
+ * Prüft, ob die letzte Seite des Dokuments ein Template ist und ob gerade
+ * auf ihr ein neues Element angelegt wurde. Ist beides der Fall und ist
+ * die Option "autoExtendTemplatePages" aktiv, wird eine weitere Seite
+ * desselben Templates (inkl. Größe) angehängt.
+ *
+ * Wird NUR nach dem Anlegen NEUER Inhalte aufgerufen (saveNewObject,
+ * saveTextBlock, createTextBlock). Bestehende Elemente verschieben,
+ * bearbeiten oder löschen löst KEIN Auto-Extend aus.
+ */
+    private async maybeAutoExtendLastPage(triggerPageId: string): Promise<void> {
+        if (!this.plugin.settings.autoExtendTemplatePages) return;
+        if (this.isAutoExtending) return;
+        if (!this.currentDocument || !this.currentFile) return;
+
+        const pages = this.currentDocument.pages;
+        if (pages.length === 0) return;
+
+        const lastPage = pages[pages.length - 1];
+        if (lastPage.id !== triggerPageId) return;
+        if (!isBlankPage(lastPage)) return;
+
+        this.isAutoExtending = true;
+        try {
+            const templateId: BuiltinTemplateId = lastPage.template ?? "blank";
+            const newPage: any = {
+                id: crypto.randomUUID(),
+                type: "blank",
+                template: templateId,
+            };
+            // Größe übernehmen (Objekt kopieren, String direkt übernehmen).
+            if (typeof lastPage.size === "object") {
+                newPage.size = { ...lastPage.size };
+            } else if (lastPage.size) {
+                newPage.size = lastPage.size;
+            }
+            // (Wenn lastPage.size undefined ist, bleibt auch newPage.size
+            //  undefined – Standard ist dann A4.)
+
+            await this.modifyFrontmatterSilently((fm) => {
+                if (!Array.isArray(fm.pages)) fm.pages = [];
+                fm.pages.push(newPage);
+            });
+
+            // Da modifyFrontmatterSilently das 'changed'-Event unterdrückt,
+            // explizit neu rendern, damit die neue Seite sichtbar wird.
+            void this.renderDocument();
+        } catch (err) {
+            console.error("PDF Compose: auto-extend template page failed", err);
+        } finally {
+            this.isAutoExtending = false;
+        }
     }
 
     async onClose(): Promise<void> {
@@ -4475,6 +4536,8 @@ export class PdfComposeView extends ItemView {
             },
             redo: async () => { await this.saveTextBlockRaw(entry); },
         });
+
+        await this.maybeAutoExtendLastPage(entry.pageId);
     }
 
     private async deleteTextBlockRaw(entry: TextBlockEntry): Promise<void> {
@@ -4509,7 +4572,6 @@ export class PdfComposeView extends ItemView {
 
     private async createTextBlock(entry: TextBlockEntry): Promise<void> {
         if (!entry.markdown.trim()) {
-            // Nichts eingegeben -> wie Abbrechen behandeln, nichts wird persistiert.
             await this.discardPendingTextBlock(entry);
             return;
         }
@@ -4519,6 +4581,7 @@ export class PdfComposeView extends ItemView {
             undo: async () => { await this.deleteTextBlockRaw(entry); },
             redo: async () => { await this.saveTextBlockRaw(entry); },
         });
+        await this.maybeAutoExtendLastPage(entry.pageId);
     }
 
     private openTextBlockEditor(entry: TextBlockEntry, isNew: boolean = false): void {
@@ -7451,6 +7514,7 @@ export class PdfComposeView extends ItemView {
             undo: async () => { await this.removeObjectsRaw(pageId, new Set([obj.id])); },
             redo: async () => { await this.addObjectRaw(pageId, obj); },
         });
+        await this.maybeAutoExtendLastPage(pageId);
     }
 
     private async deleteAnnotationObjects(pageId: string, idsToRemove: Set<string>): Promise<void> {
@@ -8717,6 +8781,15 @@ export class PdfComposeView extends ItemView {
      */
     private async setRestrictDrawingToStylus(value: boolean): Promise<void> {
         this.plugin.settings.restrictDrawingToStylus = value;
+        await this.plugin.saveSettings();
+    }
+
+    /**
+ * Wird vom Toggle im Drei-Punkte-Menü aufgerufen. Ändert dieselbe
+ * Einstellung wie "autoExtendTemplatePages" und speichert sie sofort.
+ */
+    private async setAutoExtendTemplatePages(value: boolean): Promise<void> {
+        this.plugin.settings.autoExtendTemplatePages = value;
         await this.plugin.saveSettings();
     }
 

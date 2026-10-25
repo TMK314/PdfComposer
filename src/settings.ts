@@ -80,6 +80,8 @@ export interface PdfComposeSettings {
 	companionPdfFolder: string;
 	/** Farbmodus für Companion-PDFs und Embed-Rendering. */
 	companionPdfColorMode: string;
+	/** Wenn aktiv: Beim Zeichnen auf der letzten Seite (sofern Template) wird automatisch eine weitere Seite desselben Templates angehängt. */
+autoExtendTemplatePages: boolean;
 }
 
 export const DEFAULT_SETTINGS: PdfComposeSettings = {
@@ -134,6 +136,7 @@ export const DEFAULT_SETTINGS: PdfComposeSettings = {
 	generateCompanionPdf: false,
 	companionPdfFolder: "",
 	companionPdfColorMode: "original",
+	autoExtendTemplatePages: false,
 };
 
 export class PdfComposeSettingTab extends PluginSettingTab {

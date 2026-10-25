@@ -1945,6 +1945,7 @@ export class PdfComposeUI {
     }
 
     private stylusOnlyCheckbox: HTMLInputElement | null = null;
+    private autoExtendCheckbox: HTMLInputElement | null = null;
 
     /**
      * Schnellzugriff-Checkbox direkt in der View (statt nur in den
@@ -1972,6 +1973,36 @@ export class PdfComposeUI {
 
     public setStylusOnlyValue(value: boolean): void {
         if (this.stylusOnlyCheckbox) this.stylusOnlyCheckbox.checked = value;
+    }
+
+    /**
+ * Toggle, um bei aktivierter Option automatisch eine weitere Template-Seite
+ * anzuhängen, sobald auf der aktuellen letzten Seite (Template) gezeichnet
+ * wird. Spiegelt die Einstellung "autoExtendTemplatePages".
+ */
+    public buildAutoExtendTemplatePagesToggle(
+        container: HTMLElement,
+        initialValue: boolean,
+        onChange: (value: boolean) => void,
+    ): void {
+        const row = container.createDiv({ cls: "pdfcompose-colormode-control" });
+        const label = row.createEl("label", { cls: "pdfcompose-stylus-toggle-label" });
+        setIcon(label, "file-plus-2");
+        label.createSpan({ text: "Auto-extend template pages" });
+        label.setAttribute(
+            "title",
+            "When drawing on the last page (if it is a template/blank page), " +
+            "automatically append another page of the same template. " +
+            "Only the LAST page is extended; PDF pages are never extended.",
+        );
+        const checkbox = row.createEl("input", { type: "checkbox" }) as HTMLInputElement;
+        checkbox.checked = initialValue;
+        checkbox.addEventListener("change", () => onChange(checkbox.checked));
+        this.autoExtendCheckbox = checkbox;
+    }
+
+    public setAutoExtendTemplatePagesValue(value: boolean): void {
+        if (this.autoExtendCheckbox) this.autoExtendCheckbox.checked = value;
     }
 
     public setColorModeValue(mode: ColorMode): void {
