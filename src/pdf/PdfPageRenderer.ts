@@ -121,6 +121,12 @@ export class PdfPageRenderer {
         return items;
     }
 
+    /** Anzahl der Seiten in einem PDF (für den eingebetteten PDF-Viewer). */
+    public async getPageCount(path: string): Promise<number> {
+        const doc = await this.getDocument(path);
+        return doc.numPages;
+    }
+
     private async extractTextItemsInternal(path: string, pageNumber: number, rotate: number): Promise<TextItemWithPosition[]> {
         const pdfDocument = await this.getDocument(path);
         const page = await pdfDocument.getPage(pageNumber);

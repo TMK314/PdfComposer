@@ -1,6 +1,7 @@
 import {
     Plugin, TFile, WorkspaceLeaf, Notice, CachedMetadata,
     MarkdownPostProcessorContext,
+    MarkdownRenderer, MarkdownRenderChild, Platform, Component,
 } from "obsidian";
 import { PdfComposeView } from "./view/PdfComposeView";
 import { VIEW_TYPE_PDFCOMPOSE } from "./view/constants";
@@ -515,6 +516,26 @@ export default class PdfComposePlugin extends Plugin {
     //  BLOB-URL-CACHE (auch vom Post-Processor genutzt)
     // ============================================================
 
+    /**
+ * Stellt sicher, dass die Companion-.pdf zur übergebenen PDF-Compose-Datei
+ * existiert. Generiert NUR dann neu, wenn die Datei fehlt.
+ *
+ * Wichtig für Mobile: Eine Regeneration bei jedem Öffnen würde auf Android
+ * jedes Mal den kompletten PDF-Export (pdf-lib + Rendering aller Seiten)
+ * ausführen und die UI mehrere Sekunden blockieren. Aktualisierungen bei
+ * Änderungen übernimmt der modify-Handler, sofern die Option
+ * "Auto-generate companion PDFs on save" aktiviert ist.
+ */
+    private async ensureCompanionPdfUpToDate(file: TFile): Promise<string> {
+        const pdfPath = this.companionPath(file);
+        const existingPdf = this.app.vault.getAbstractFileByPath(pdfPath);
+        if (existingPdf instanceof TFile) {
+            return pdfPath;
+        }
+        await this.generateCompanionPdf(file, false);
+        return pdfPath;
+    }
+
     private async getComposeAsPdfBlobUrl(file: TFile): Promise<string> {
         const stat = await this.app.vault.adapter.stat(file.path);
         const mtime = stat?.mtime ?? 0;
@@ -540,6 +561,245 @@ export default class PdfComposePlugin extends Plugin {
     // ============================================================
     //  POST-PROCESSOR (Reading View)
     // ============================================================
+
+    /**
+ * Eigener, minimaler PDF-Viewer für den Embed-Kontext auf Mobile.
+ *
+ * Warum nicht der native Obsidian-PDF-Embed?
+ *  - Obsidian rendert PDFs fit-to-width → horizontaler Scroll ist sinnlos,
+ *    weil es nichts zu scrollen gibt.
+ *  - Der mobile Embed-Container fängt Pinch-Gesten ab, bevor der PDF-Viewer
+ *    sie sieht → Zoom ist nicht möglich.
+ *
+ * Dieser Viewer:
+ *  - rendert Seiten selbst mit pdf.js auf <canvas>-Elemente (natürliche
+ *    Größe, Seiten untereinander),
+ *  - benutzt einen normalen `overflow: auto`-Container (Horizontal- und
+ *    Vertikalscroll funktionieren, sobald gezoomt wurde),
+ *  - implementiert Pinch-Zoom über `zoom`-CSS (Chromium-sicher, skaliert
+ *    Layout und damit auch die Scroll-Dimensionen).
+ */
+    private async renderCustomPdfViewer(
+        host: HTMLElement,
+        pdfPath: string,
+        ctx: MarkdownPostProcessorContext,
+    ): Promise<void> {
+        const renderer = this.getCompanionRenderer();
+
+        let numPages = 0;
+        try {
+            numPages = await renderer.getPageCount(pdfPath);
+        } catch (err) {
+            host.createEl("div", {
+                cls: "pdfcompose-embed-error",
+                text: `Failed to read PDF: ${String(err)}`,
+            });
+            return;
+        }
+
+        // A4 bei DEFAULT_RENDER_SCALE = 1.5 ergibt ~892 × 1263 px.
+        // Leicht überschätzt (damit Letter-Format auch passt), wird ohnehin
+        // per CSS-Zoom auf Container-Breite skaliert.
+        const canvasWidth = 892;
+        const canvasHeight = 1263;
+
+        const scroll = host.createDiv({ cls: "pdfcompose-pdf-scroll" });
+        const pages = scroll.createDiv({ cls: "pdfcompose-pdf-pages" });
+
+        // ---------- Lazy Rendering ----------
+        const io = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                const canvas = entry.target as HTMLCanvasElement;
+                const pageNum = parseInt(canvas.dataset.pageNum ?? "0", 10);
+                if (pageNum <= 0) continue;
+                io.unobserve(canvas);
+                void renderer.renderPageToCanvas(pdfPath, pageNum, canvas, {
+                    scale: 1.5,
+                    pixelRatio: 1, // Speicher schonen; bei Bedarf via Pinch-Zoom vergrößert
+                }).catch(() => {
+                    const parent = canvas.parentElement;
+                    if (parent) {
+                        parent.createEl("div", {
+                            cls: "pdfcompose-pdf-page-error",
+                            text: `Page ${pageNum} failed to render`,
+                        });
+                    }
+                });
+            }
+        }, { root: scroll, rootMargin: "400px" });
+
+        for (let i = 1; i <= numPages; i++) {
+            const pageWrapper = pages.createDiv({ cls: "pdfcompose-pdf-page" });
+            const canvas = pageWrapper.createEl("canvas", { cls: "pdfcompose-pdf-page-canvas" });
+            canvas.style.width = `${canvasWidth}px`;
+            canvas.style.height = `${canvasHeight}px`;
+            // Platzhalter, damit Layout-Größe korrekt ist, bevor gerendert wurde
+            canvas.width = 100;
+            canvas.height = Math.round(100 * (canvasHeight / canvasWidth));
+            const pctx = canvas.getContext("2d");
+            if (pctx) {
+                pctx.fillStyle = "#ffffff";
+                pctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            canvas.dataset.pageNum = String(i);
+            io.observe(canvas);
+        }
+
+        // ---------- Zoom-Zustand ----------
+        let zoom = 1;
+        let fitZoom = 1;
+
+        const applyZoom = () => {
+            pages.setCssStyles({ zoom: zoom.toString() } as any);
+        };
+
+        const computeFitZoom = () => {
+            const w = scroll.clientWidth;
+            if (w > 0) {
+                fitZoom = w / canvasWidth;
+            }
+            return fitZoom;
+        };
+
+        // Initial fit-to-width, sobald das Layout steht
+        const fitInitial = () => {
+            const w = scroll.clientWidth;
+            if (w > 0) {
+                fitZoom = w / canvasWidth;
+                zoom = fitZoom;
+                applyZoom();
+            }
+        };
+        window.requestAnimationFrame(fitInitial);
+
+        // Fit anpassen, wenn sich die Breite des Containers ändert
+        const ro = new ResizeObserver(() => {
+            const prevFit = fitZoom;
+            const newFit = computeFitZoom();
+            // Nur automatisch nachziehen, wenn der Nutzer nicht manuell
+            // hineingezoomt hat. Sonst würde jede Bildschirmdrehung den
+            // Zoom-Zustand zurücksetzen.
+            if (Math.abs(zoom - prevFit) < 0.001) {
+                zoom = newFit;
+                applyZoom();
+            }
+        });
+        ro.observe(scroll);
+
+        // ---------- Pinch-Zoom ----------
+        const cleanupPinch = this.attachPinchZoom(
+            scroll,
+            () => zoom,
+            () => fitZoom,
+            (newZoom) => {
+                zoom = newZoom;
+                applyZoom();
+            },
+        );
+
+        // ---------- Lebenszyklus ----------
+        class ViewerLifecycle extends MarkdownRenderChild {
+            constructor(el: HTMLElement, private cleanup: () => void) {
+                super(el);
+            }
+            onunload(): void {
+                this.cleanup();
+            }
+        }
+        const child = new ViewerLifecycle(scroll, () => {
+            io.disconnect();
+            ro.disconnect();
+            cleanupPinch();
+        });
+        ctx.addChild(child);
+    }
+
+    /**
+     * Pinch-Zoom auf einem Element mit `overflow: auto` und einer
+     * CSS-`zoom`-skalierten Inhalts-Ebene.
+     *
+     * Gestenlogik:
+     *  - Ein Finger → native Scroll-Geste (touch-action: pan-x pan-y).
+     *  - Zwei Finger → eigene Zoom-Berechnung, native Geste wird geblockt.
+     *
+     * Rückgabe ist eine Cleanup-Funktion, die alle Listener entfernt.
+     */
+    private attachPinchZoom(
+        scroll: HTMLElement,
+        getZoom: () => number,
+        getFitZoom: () => number,
+        setZoom: (z: number) => void,
+    ): () => void {
+        let initialDist = 0;
+        let initialZoom = 1;
+        let initialScrollLeft = 0;
+        let initialScrollTop = 0;
+        let initialCenterClientX = 0;
+        let initialCenterClientY = 0;
+
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.touches.length !== 2) return;
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            initialDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+            initialZoom = getZoom();
+            initialScrollLeft = scroll.scrollLeft;
+            initialScrollTop = scroll.scrollTop;
+            initialCenterClientX = (t1.clientX + t2.clientX) / 2;
+            initialCenterClientY = (t1.clientY + t2.clientY) / 2;
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+            if (e.touches.length !== 2 || initialDist <= 0) return;
+            e.preventDefault();
+
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+            const factor = dist / initialDist;
+
+            const fit = getFitZoom();
+            const minZoom = fit;
+            const maxZoom = Math.max(fit * 3, fit + 0.5);
+            const newZoom = Math.max(minZoom, Math.min(maxZoom, initialZoom * factor));
+
+            const rect = scroll.getBoundingClientRect();
+            const currentCenterX = (t1.clientX + t2.clientX) / 2 - rect.left;
+            const currentCenterY = (t1.clientY + t2.clientY) / 2 - rect.top;
+
+            // Content-Koordinate des ANFÄNGLICHEN Pinch-Zentrums:
+            const contentX = (initialCenterClientX - rect.left + initialScrollLeft) / initialZoom;
+            const contentY = (initialCenterClientY - rect.top + initialScrollTop) / initialZoom;
+
+            // Zoom anwenden (Layout ändert sich, Scroll-Dimensionen ändern sich)
+            setZoom(newZoom);
+
+            // Danach Scroll so setzen, dass der Content-Punkt unter dem
+            // AKTUELLEN Pinch-Zentrum liegt – so kann der Nutzer während des
+            // Zoomens auch verschieben.
+            scroll.scrollLeft = contentX * newZoom - currentCenterX;
+            scroll.scrollTop = contentY * newZoom - currentCenterY;
+        };
+
+        const onTouchEnd = (e: TouchEvent) => {
+            if (e.touches.length < 2) {
+                initialDist = 0;
+            }
+        };
+
+        scroll.addEventListener("touchstart", onTouchStart, { passive: true });
+        scroll.addEventListener("touchmove", onTouchMove, { passive: false });
+        scroll.addEventListener("touchend", onTouchEnd, { passive: true });
+        scroll.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+        return () => {
+            scroll.removeEventListener("touchstart", onTouchStart);
+            scroll.removeEventListener("touchmove", onTouchMove);
+            scroll.removeEventListener("touchend", onTouchEnd);
+            scroll.removeEventListener("touchcancel", onTouchEnd);
+        };
+    }
 
     private async processEmbeddedPdfComposeFiles(
         el: HTMLElement,
@@ -567,22 +827,63 @@ export default class PdfComposePlugin extends Plugin {
             embed.addClass("pdfcompose-embed");
             embed.empty();
 
-            const loading = embed.createDiv({
-                cls: "pdfcompose-embed-loading",
-                text: "Rendering PDF…",
-            });
-            try {
-                const url = await this.getComposeAsPdfBlobUrl(file);
-                loading.remove();
-                const iframe = embed.createEl("iframe", { cls: "pdfcompose-embed-iframe" });
-                iframe.src = url;
-                iframe.setAttribute("title", `PDF: ${file.basename}`);
-            } catch (error) {
-                loading.remove();
-                embed.createEl("div", {
-                    cls: "pdfcompose-embed-error",
-                    text: `Failed to render PDF Compose file: ${String(error)}`,
+            if (Platform.isMobile) {
+                const loading = embed.createDiv({
+                    cls: "pdfcompose-embed-loading",
+                    text: "Rendering PDF…",
                 });
+                try {
+                    const pdfPath = await this.ensureCompanionPdfUpToDate(file);
+                    loading.remove();
+
+                    const viewerHost = embed.createDiv({ cls: "pdfcompose-embed-viewer" });
+                    await this.renderCustomPdfViewer(viewerHost, pdfPath, ctx);
+
+                    // Fallback-Aktion: native PDF-Ansicht mit voller Scroll/Zoom-
+                    // Funktionalität öffnen (z. B. für sehr große PDFs oder wenn
+                    // Textselektion gebraucht wird).
+                    const actionRow = embed.createDiv({ cls: "pdfcompose-embed-actions" });
+                    const openLink = actionRow.createEl("a", {
+                        cls: "pdfcompose-embed-openlink",
+                        text: "Open full-screen ↗",
+                        href: "#",
+                    });
+                    openLink.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const target = this.app.vault.getAbstractFileByPath(pdfPath);
+                        if (target instanceof TFile) {
+                            void this.app.workspace.getLeaf(false).openFile(target);
+                        }
+                    });
+                } catch (error) {
+                    loading.remove();
+                    embed.createEl("div", {
+                        cls: "pdfcompose-embed-error",
+                        text: `Failed to render PDF on mobile: ${String(error)}`,
+                    });
+                }
+            } else {
+                // ----------------------------------------------------------
+                // Desktop: iframe mit Blob-URL (schnell, erzeugt keine
+                // Datei auf der Festplatte).
+                // ----------------------------------------------------------
+                const loading = embed.createDiv({
+                    cls: "pdfcompose-embed-loading",
+                    text: "Rendering PDF…",
+                });
+                try {
+                    const url = await this.getComposeAsPdfBlobUrl(file);
+                    loading.remove();
+                    const iframe = embed.createEl("iframe", { cls: "pdfcompose-embed-iframe" });
+                    iframe.src = url;
+                    iframe.setAttribute("title", `PDF: ${file.basename}`);
+                } catch (error) {
+                    loading.remove();
+                    embed.createEl("div", {
+                        cls: "pdfcompose-embed-error",
+                        text: `Failed to render PDF Compose file: ${String(error)}`,
+                    });
+                }
             }
         }
     }

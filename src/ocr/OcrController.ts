@@ -9,8 +9,9 @@
 import { App } from "obsidian";
 import { VectorObject } from "../types";
 import { collectEligibleStrokes, groupStrokesIntoWords, buildNormalizedInk } from "./OcrStrokeCollector";
-import { OcrModelRunner, OcrModelSource } from "./OcrModelRunner";
+import type { OcrModelRunner, OcrModelSource } from "./OcrModelRunner";
 import { OcrWordEntry } from "./OcrBlockParser";
+
 
 /** Minimale Teilmenge der Plugin-Einstellungen, die OCR benötigt. */
 export interface OcrSettingsSlice {
@@ -103,7 +104,9 @@ export class OcrController {
             return this.runner;
         }
         await this.runner?.destroy();
-        this.runner = new OcrModelRunner(
+        // Lazy: tfjs/tfjs-tflite werden erst jetzt ausgeführt, nicht beim Plugin-Start.
+        const { OcrModelRunner: RunnerClass } = await import("./OcrModelRunner");
+        this.runner = new RunnerClass(
             { maxSequenceLength: settings.ocrMaxSequenceLength },
             () => this.loadModelSource()
         );

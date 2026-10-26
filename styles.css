@@ -1876,3 +1876,98 @@ body.pdfcompose-fullscreen.is-mobile {
     background: var(--background-primary);
     display: block;
 }
+
+/* PDF-Compose-Embeds: native PDF-Ansicht auf Mobile */
+.pdfcompose-embed .pdf-embed,
+.pdfcompose-embed .pdf-container,
+.pdfcompose-embed .pdf-viewer {
+    width: 100%;
+    height: 70vh;
+    min-height: 400px;
+    max-height: 1000px;
+}
+
+/* PDF-Compose-Embeds: Touch-/Scroll-Verhalten auf Mobile verbessern */
+.pdfcompose-embed {
+    width: 100%;
+    overflow: visible;
+}
+
+/* Custom-PDF-Viewer für Mobile: Scroll und Pinch-Zoom */
+
+.pdfcompose-embed-viewer {
+    width: 100%;
+}
+
+.pdfcompose-pdf-scroll {
+    width: 100%;
+    max-height: 80vh;
+    height: 80vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Erlaubt Ein-Finger-Pan, deaktiviert native Pinch-Zoom –
+       Pinch wird im JS behandelt. */
+    touch-action: pan-x pan-y;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    position: relative;
+}
+
+.pdfcompose-pdf-pages {
+    transform-origin: 0 0;
+    /* Wird per JS via style.zoom skaliert */
+    display: inline-block;
+    min-width: 100%;
+}
+
+.pdfcompose-pdf-page {
+    background: var(--background-primary);
+    margin: 8px auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    width: max-content;
+}
+
+.pdfcompose-pdf-page-canvas {
+    display: block;
+    /* width/height werden inline per JS gesetzt */
+}
+
+.pdfcompose-pdf-page-error {
+    padding: 12px;
+    color: var(--text-error);
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+.pdfcompose-embed-actions {
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.pdfcompose-embed-openlink {
+    font-size: 0.85em;
+    color: var(--text-accent);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.pdfcompose-embed-openlink:hover {
+    color: var(--text-accent-hover);
+}
+
+/* Fallback-Link */
+.pdfcompose-embed-actions {
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.pdfcompose-embed-openlink {
+    font-size: 0.85em;
+    color: var(--text-accent);
+    text-decoration: underline;
+    cursor: pointer;
+}
+.pdfcompose-embed-openlink:hover {
+    color: var(--text-accent-hover);
+}
