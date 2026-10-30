@@ -475,12 +475,9 @@ export default class PdfComposePlugin extends Plugin {
                 await this.app.vault.createBinary(pdfPath, pdfBuffer);
             }
 
-            // Blob-Cache invalidieren, damit Embeds neu rendern
-            const cachedUrl = this.pdfComposeBlobUrls.get(file.path);
-            if (cachedUrl) {
-                URL.revokeObjectURL(cachedUrl.url);
-                this.pdfComposeBlobUrls.delete(file.path);
-            }
+            // Blob-Cache invalidieren (inkl. seitenbeschränkter Varianten),
+            // damit Embeds neu rendern.
+            this.invalidateBlobUrlsFor(file.path);
 
             if (notify) new Notice(`PDF companion generated: ${pdfPath}`);
         } catch (error) {
@@ -536,17 +533,76 @@ export default class PdfComposePlugin extends Plugin {
         return pdfPath;
     }
 
-    private async getComposeAsPdfBlobUrl(file: TFile): Promise<string> {
+    /**
+ * Parst eine Seitenbereichs-Angabe wie "1,2-4" aus dem Embed-Alias.
+ * Gibt null zurück, wenn die Angabe nicht dem erwarteten Format entspricht
+ * (dann werden alle Seiten angezeigt).
+ */
+    private parsePageRange(spec: string): number[] | null {
+        const trimmed = spec.trim();
+        if (!trimmed) return null;
+        // Nur Zahlen, Kommas und Bindestriche (mit optionalen Leerzeichen)
+        if (!/^\s*\d+\s*(-\s*\d+\s*)?(,\s*\d+\s*(-\s*\d+\s*)?)*$/.test(trimmed)) {
+            return null;
+        }
+        const pages = new Set<number>();
+        for (const part of trimmed.split(",")) {
+            const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+            if (!m) continue;
+            const a = parseInt(m[1], 10);
+            const b = m[2] !== undefined ? parseInt(m[2], 10) : a;
+            const lo = Math.min(a, b);
+            const hi = Math.max(a, b);
+            for (let i = lo; i <= hi; i++) pages.add(i);
+        }
+        return pages.size > 0 ? Array.from(pages).sort((x, y) => x - y) : null;
+    }
+
+    /** Entfernt alle gecachten Blob-URLs (inkl. seitenbeschränkter Varianten) einer Datei. */
+    private invalidateBlobUrlsFor(filePath: string): void {
+        const toDelete: string[] = [];
+        for (const key of this.pdfComposeBlobUrls.keys()) {
+            if (key === filePath || key.startsWith(filePath + "#")) {
+                toDelete.push(key);
+            }
+        }
+        for (const key of toDelete) {
+            const entry = this.pdfComposeBlobUrls.get(key);
+            if (entry) {
+                try { URL.revokeObjectURL(entry.url); } catch { /* ignore */ }
+                this.pdfComposeBlobUrls.delete(key);
+            }
+        }
+    }
+
+    private async getComposeAsPdfBlobUrl(file: TFile, pageIndices?: number[]): Promise<string> {
         const stat = await this.app.vault.adapter.stat(file.path);
         const mtime = stat?.mtime ?? 0;
-        const cached = this.pdfComposeBlobUrls.get(file.path);
+        // Cache-Key enthält die Seitenauswahl, damit unterschiedliche
+        // Beschränkungen (z. B. eine Einbettung mit "1-3" und eine ohne)
+        // nicht denselben Blob teilen.
+        const rangeSuffix = pageIndices && pageIndices.length > 0
+            ? "#" + pageIndices.join(",")
+            : "";
+        const cacheKey = file.path + rangeSuffix;
+        const cached = this.pdfComposeBlobUrls.get(cacheKey);
         if (cached && cached.mtime === mtime) return cached.url;
 
         const doc = await this.readDocumentFreshFromFile(file);
         const renderer = this.getCompanionRenderer();
+
+        // pageIndices (1-basiert) in pageIds (Dokument-IDs) übersetzen.
+        let pageIds: string[] | undefined;
+        if (pageIndices && pageIndices.length > 0) {
+            const ids = pageIndices
+                .filter(n => n >= 1 && n <= doc.pages.length)
+                .map(n => doc.pages[n - 1].id);
+            if (ids.length > 0) pageIds = ids;
+        }
+
         const bytes = await exportPdfComposeToPdf(
             this.app, file, doc, renderer,
-            { colorMode: this.companionPdfColorMode() },
+            { colorMode: this.companionPdfColorMode(), pageIds },
         );
         const pdfBuffer = new ArrayBuffer(bytes.byteLength);
         new Uint8Array(pdfBuffer).set(bytes);
@@ -554,7 +610,7 @@ export default class PdfComposePlugin extends Plugin {
         const url = URL.createObjectURL(blob);
 
         if (cached) URL.revokeObjectURL(cached.url);
-        this.pdfComposeBlobUrls.set(file.path, { mtime, url });
+        this.pdfComposeBlobUrls.set(cacheKey, { mtime, url });
         return url;
     }
 
@@ -583,6 +639,7 @@ export default class PdfComposePlugin extends Plugin {
         host: HTMLElement,
         pdfPath: string,
         ctx: MarkdownPostProcessorContext,
+        pageIndices: number[] | null,   // NEU
     ): Promise<void> {
         const renderer = this.getCompanionRenderer();
 
@@ -597,9 +654,20 @@ export default class PdfComposePlugin extends Plugin {
             return;
         }
 
-        // A4 bei DEFAULT_RENDER_SCALE = 1.5 ergibt ~892 × 1263 px.
-        // Leicht überschätzt (damit Letter-Format auch passt), wird ohnehin
-        // per CSS-Zoom auf Container-Breite skaliert.
+        // Seitenauswahl bestimmen: entweder die gewünschten Seiten
+        // (1-basiert, gefiltert auf den gültigen Bereich) oder alle.
+        const pagesToRender: number[] = pageIndices && pageIndices.length > 0
+            ? pageIndices.filter(n => n >= 1 && n <= numPages)
+            : Array.from({ length: numPages }, (_, i) => i + 1);
+
+        if (pagesToRender.length === 0) {
+            host.createEl("div", {
+                cls: "pdfcompose-embed-error",
+                text: "No pages in the specified range.",
+            });
+            return;
+        }
+
         const canvasWidth = 892;
         const canvasHeight = 1263;
 
@@ -616,7 +684,7 @@ export default class PdfComposePlugin extends Plugin {
                 io.unobserve(canvas);
                 void renderer.renderPageToCanvas(pdfPath, pageNum, canvas, {
                     scale: 1.5,
-                    pixelRatio: 1, // Speicher schonen; bei Bedarf via Pinch-Zoom vergrößert
+                    pixelRatio: 1,
                 }).catch(() => {
                     const parent = canvas.parentElement;
                     if (parent) {
@@ -629,12 +697,11 @@ export default class PdfComposePlugin extends Plugin {
             }
         }, { root: scroll, rootMargin: "400px" });
 
-        for (let i = 1; i <= numPages; i++) {
+        for (const pageNum of pagesToRender) {
             const pageWrapper = pages.createDiv({ cls: "pdfcompose-pdf-page" });
             const canvas = pageWrapper.createEl("canvas", { cls: "pdfcompose-pdf-page-canvas" });
             canvas.style.width = `${canvasWidth}px`;
             canvas.style.height = `${canvasHeight}px`;
-            // Platzhalter, damit Layout-Größe korrekt ist, bevor gerendert wurde
             canvas.width = 100;
             canvas.height = Math.round(100 * (canvasHeight / canvasWidth));
             const pctx = canvas.getContext("2d");
@@ -642,11 +709,11 @@ export default class PdfComposePlugin extends Plugin {
                 pctx.fillStyle = "#ffffff";
                 pctx.fillRect(0, 0, canvas.width, canvas.height);
             }
-            canvas.dataset.pageNum = String(i);
+            canvas.dataset.pageNum = String(pageNum);
             io.observe(canvas);
         }
 
-        // ---------- Zoom-Zustand ----------
+        // ---------- Zoom-Zustand (unverändert) ----------
         let zoom = 1;
         let fitZoom = 1;
 
@@ -656,13 +723,10 @@ export default class PdfComposePlugin extends Plugin {
 
         const computeFitZoom = () => {
             const w = scroll.clientWidth;
-            if (w > 0) {
-                fitZoom = w / canvasWidth;
-            }
+            if (w > 0) fitZoom = w / canvasWidth;
             return fitZoom;
         };
 
-        // Initial fit-to-width, sobald das Layout steht
         const fitInitial = () => {
             const w = scroll.clientWidth;
             if (w > 0) {
@@ -673,13 +737,9 @@ export default class PdfComposePlugin extends Plugin {
         };
         window.requestAnimationFrame(fitInitial);
 
-        // Fit anpassen, wenn sich die Breite des Containers ändert
         const ro = new ResizeObserver(() => {
             const prevFit = fitZoom;
             const newFit = computeFitZoom();
-            // Nur automatisch nachziehen, wenn der Nutzer nicht manuell
-            // hineingezoomt hat. Sonst würde jede Bildschirmdrehung den
-            // Zoom-Zustand zurücksetzen.
             if (Math.abs(zoom - prevFit) < 0.001) {
                 zoom = newFit;
                 applyZoom();
@@ -687,25 +747,18 @@ export default class PdfComposePlugin extends Plugin {
         });
         ro.observe(scroll);
 
-        // ---------- Pinch-Zoom ----------
         const cleanupPinch = this.attachPinchZoom(
             scroll,
             () => zoom,
             () => fitZoom,
-            (newZoom) => {
-                zoom = newZoom;
-                applyZoom();
-            },
+            (newZoom) => { zoom = newZoom; applyZoom(); },
         );
 
-        // ---------- Lebenszyklus ----------
         class ViewerLifecycle extends MarkdownRenderChild {
             constructor(el: HTMLElement, private cleanup: () => void) {
                 super(el);
             }
-            onunload(): void {
-                this.cleanup();
-            }
+            onunload(): void { this.cleanup(); }
         }
         const child = new ViewerLifecycle(scroll, () => {
             io.disconnect();
@@ -801,6 +854,28 @@ export default class PdfComposePlugin extends Plugin {
         };
     }
 
+    /**
+ * Parst den Embed-Alias. Format:
+ *   "Beschriftung"            → nur Alias, alle Seiten
+ *   "Beschriftung#1,2-4"      → Alias "Beschriftung" + Seitenauswahl
+ *   "#1,2-4"                  → nur Seitenauswahl (kein Alias)
+ *   ""                        → weder Alias noch Seitenauswahl
+ *
+ * Das '#'-Trennzeichen ist nötig, weil ein Alias selbst Ziffern und
+ * Kommas enthalten kann. Ist der Teil nach '#' keine gültige
+ * Seitenangabe, wird er als Bestandteil der Seitenauswahl verworfen
+ * und alle Seiten angezeigt (Alias bleibt erhalten).
+ */
+    private parseEmbedAlias(raw: string): { alias: string; pageIndices: number[] | null } {
+        const hashIndex = raw.indexOf("#");
+        if (hashIndex === -1) {
+            return { alias: raw.trim(), pageIndices: null };
+        }
+        const alias = raw.slice(0, hashIndex).trim();
+        const rangePart = raw.slice(hashIndex + 1).trim();
+        return { alias, pageIndices: this.parsePageRange(rangePart) };
+    }
+
     private async processEmbeddedPdfComposeFiles(
         el: HTMLElement,
         ctx: MarkdownPostProcessorContext,
@@ -825,7 +900,31 @@ export default class PdfComposePlugin extends Plugin {
             if (!isPdfComposeFile(cache)) continue;
 
             embed.addClass("pdfcompose-embed");
+
+            // Alias aus dem Embed-Text lesen. Obsidian legt den Alias je nach
+            // Dateityp in alt, title oder im Textinhalt ab – wir prüfen alle drei.
+            const altText =
+                (embed.getAttribute("alt") ?? "").trim() ||
+                (embed.getAttribute("title") ?? "").trim() ||
+                (embed.textContent ?? "").trim();
+            const { alias, pageIndices } = this.parseEmbedAlias(altText);
+
+            embed.addClass("pdfcompose-embed");
             embed.empty();
+
+            // Alias als dezente Beschriftung über dem PDF anzeigen, sofern vorhanden.
+            // So bleibt eine evtl. gesetzte Beschriftung sichtbar, ohne dass sie als
+            // Seitenangabe fehlinterpretiert wird.
+            if (alias) {
+                const caption = embed.createDiv({ cls: "pdfcompose-embed-caption" });
+                caption.setText(alias);
+                caption.setCssStyles({
+                    marginBottom: "6px",
+                    fontSize: "0.85em",
+                    opacity: "0.75",
+                    fontStyle: "italic",
+                });
+            }
 
             if (Platform.isMobile) {
                 const loading = embed.createDiv({
@@ -837,7 +936,7 @@ export default class PdfComposePlugin extends Plugin {
                     loading.remove();
 
                     const viewerHost = embed.createDiv({ cls: "pdfcompose-embed-viewer" });
-                    await this.renderCustomPdfViewer(viewerHost, pdfPath, ctx);
+                    await this.renderCustomPdfViewer(viewerHost, pdfPath, ctx, pageIndices);
 
                     // Fallback-Aktion: native PDF-Ansicht mit voller Scroll/Zoom-
                     // Funktionalität öffnen (z. B. für sehr große PDFs oder wenn
@@ -872,11 +971,14 @@ export default class PdfComposePlugin extends Plugin {
                     text: "Rendering PDF…",
                 });
                 try {
-                    const url = await this.getComposeAsPdfBlobUrl(file);
+                    const url = await this.getComposeAsPdfBlobUrl(file, pageIndices ?? undefined);
                     loading.remove();
                     const iframe = embed.createEl("iframe", { cls: "pdfcompose-embed-iframe" });
                     iframe.src = url;
-                    iframe.setAttribute("title", `PDF: ${file.basename}`);
+                    iframe.setAttribute(
+                        "title",
+                        alias ? `${alias} – ${file.basename}` : `PDF: ${file.basename}`,
+                    );
                 } catch (error) {
                     loading.remove();
                     embed.createEl("div", {
